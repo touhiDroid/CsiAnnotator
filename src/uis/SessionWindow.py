@@ -26,7 +26,7 @@ class SessionWindow(QMainWindow):
 
         self.layout = QVBoxLayout()
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_img = get_img(f'{self.asset_dir}/dish_mv_rg1.png')
+        self.lbl_img = get_img(f'{self.asset_dir}/expt/dish_mv_rg1.png')
         self.layout.addWidget(self.lbl_img)
 
         self.imgUpdateTimer = QTimer(self)
