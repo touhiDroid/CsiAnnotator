@@ -56,11 +56,12 @@ class ExptDetailsView(QWidget):
         btn_subtract_tr_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
         btn_subtract_tr_secs.setFixedSize(32, 32)
         btn_subtract_tr_secs.clicked.connect(self.transition_secs_subtract_clicked)
+        btn_subtract_tr_secs.setStyleSheet(icon_only_button_style())
         qh_tr_time.addWidget(btn_subtract_tr_secs)
 
         self.qlb_tr_secs = QLabel(str(self.experiment.transition_secs))
-        self.qlb_tr_secs .setFont(QFont('Courier', 18, 400, False))
-        self.qlb_tr_secs .setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.qlb_tr_secs.setFont(QFont('Courier', 18, 400, False))
+        self.qlb_tr_secs.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_tr_secs.setStyleSheet("color: black;")
         self.qlb_tr_secs.setFixedSize(32, 32)
         qh_tr_time.addWidget(self.qlb_tr_secs)
@@ -68,6 +69,7 @@ class ExptDetailsView(QWidget):
         btn_add_tr_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/add.png"))
         btn_add_tr_secs.setFixedSize(32, 32)
         btn_add_tr_secs.clicked.connect(self.transition_secs_add_clicked)
+        btn_add_tr_secs.setStyleSheet(icon_only_button_style())
         qh_tr_time.addWidget(btn_add_tr_secs)
 
         qh_tr_time.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -88,8 +90,8 @@ class ExptDetailsView(QWidget):
         qh_reps.addWidget(btn_subtract_reps)
 
         self.qlb_reps = QLabel(str(self.experiment.reps_per_activity))
-        self.qlb_reps .setFont(QFont('Courier', 18, 400, False))
-        self.qlb_reps .setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.qlb_reps.setFont(QFont('Courier', 18, 400, False))
+        self.qlb_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_reps.setStyleSheet("color: black;")
         self.qlb_reps.setFixedSize(32, 32)
         qh_reps.addWidget(self.qlb_reps)
@@ -115,13 +117,13 @@ class ExptDetailsView(QWidget):
 
         qlist_activities = QListWidget()
         colors = ["#E5E5F5", "#FEEAEA"]
-        ci = 0
+        idx = 1
         for act in self.experiment.activities:
-            list_item_view = ActivityItemView(act, self.asset_dir, self.update_activity_in_expt, colors[ci])
+            list_item_view = ActivityItemView(idx, act, self.asset_dir, self.update_activity_in_expt, colors[idx % 2])
             ql_widget = QListWidgetItem(qlist_activities)
             ql_widget.setSizeHint(list_item_view.sizeHint())
-            ql_widget.setBackground(QColor(colors[ci]))
-            ci = (ci + 1) % 2
+            ql_widget.setBackground(QColor(colors[idx % 2]))
+            idx += 1
 
             qlist_activities.addItem(ql_widget)
             qlist_activities.setItemWidget(ql_widget, list_item_view)

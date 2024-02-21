@@ -6,7 +6,7 @@ from src.helpers import icon_only_button_style
 
 
 class ActivityItemView(QWidget):
-    def __init__(self, activity, asset_dir, update_activity_in_expt, color_str):
+    def __init__(self, serial, activity, asset_dir, update_activity_in_expt, color_str):
         super(ActivityItemView, self).__init__()
         self.activity = activity
         self.asset_dir = asset_dir
@@ -15,6 +15,11 @@ class ActivityItemView(QWidget):
         qvb = QVBoxLayout()
 
         qhb_title = QHBoxLayout()
+        qlb_serial = QLabel(str(serial) + '#')
+        qlb_serial.setStyleSheet("background-color: " + color_str + "; border: 1px solid black; border-radius: 16px;")
+        qlb_serial.setFont(QFont('Courier', 16, 400, False))
+        qhb_title.addWidget(qlb_serial)
+
         et_title = QLineEdit(activity.name)
         et_title.setMaxLength(40)
         et_title.setFixedHeight(40)
@@ -49,6 +54,7 @@ class ActivityItemView(QWidget):
         btn_subtract_dur_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
         btn_subtract_dur_secs.setFixedSize(32, 32)
         btn_subtract_dur_secs.clicked.connect(lambda: self.dur_subtract_clicked(qlb_dur))
+        btn_subtract_dur_secs.setStyleSheet(icon_only_button_style())
         qhb_dur.addWidget(btn_subtract_dur_secs)
 
         qhb_dur.addWidget(qlb_dur)
@@ -56,6 +62,7 @@ class ActivityItemView(QWidget):
         btn_add_dur_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/add.png"))
         btn_add_dur_secs.setFixedSize(32, 32)
         btn_add_dur_secs.clicked.connect(lambda: self.dur_add_clicked(qlb_dur))
+        btn_add_dur_secs.setStyleSheet(icon_only_button_style())
         qhb_dur.addWidget(btn_add_dur_secs)
 
         qhb_dur.setAlignment(Qt.AlignmentFlag.AlignLeft)
