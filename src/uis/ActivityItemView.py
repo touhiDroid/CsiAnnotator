@@ -2,9 +2,11 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QLabel, QPushButton
 
+from src.helpers import icon_only_button_style
+
 
 class ActivityItemView(QWidget):
-    def __init__(self, activity, asset_dir, update_activity_in_expt):
+    def __init__(self, activity, asset_dir, update_activity_in_expt, color_str):
         super(ActivityItemView, self).__init__()
         self.activity = activity
         self.asset_dir = asset_dir
@@ -12,24 +14,37 @@ class ActivityItemView(QWidget):
 
         qvb = QVBoxLayout()
 
+        qhb_title = QHBoxLayout()
         et_title = QLineEdit(activity.name)
         et_title.setMaxLength(40)
         et_title.setFixedHeight(40)
         et_title.textChanged.connect(self.activity_name_changed)
         et_title.setFont(QFont('Courier', 16, 400, False))
-        et_title.setFixedSize(450, 48)
-        qvb.addWidget(et_title)
+        et_title.setStyleSheet("border-style: 1px solid #ccc!important; border-radius: 8px;")
+        et_title.setFixedSize(450, 40)
+        qhb_title.addWidget(et_title)
+
+        btn_delete = QPushButton(icon=QIcon(f"{asset_dir}/icons/delete.png"))
+        btn_delete.setFixedSize(32, 32)
+        btn_delete.setStyleSheet(icon_only_button_style())
+        btn_delete.clicked.connect(self.delete_activity)
+        qhb_title.addStretch(1)
+        qhb_title.addWidget(btn_delete)
+        qvb.addLayout(qhb_title)
 
         # region : Duration Per Activity
         qhb_dur = QHBoxLayout()
         qlb_dur_title = QLabel("# Duration: ")
-        qlb_dur_title.setFont(QFont('Courier', 18, 400, False))
-        qlb_dur_title.setFixedSize(200, 48)
+        qlb_dur_title.setFont(QFont('Courier', 16, 400, False))
+        qlb_dur_title.setStyleSheet("background-color: " + color_str + ";")
+        qlb_dur_title.setFixedSize(120, 32)
         qhb_dur.addWidget(qlb_dur_title)
 
         qlb_dur = QLabel(str(activity.duration_secs))
-        qlb_dur.setStyleSheet("color: black;")
-        qlb_dur.setFixedSize(48, 32)
+        qlb_dur.setFont(QFont('Courier', 16, 400, False))
+        qlb_dur.setStyleSheet("background-color: " + color_str + "; color: black;")
+        qlb_dur.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        qlb_dur.setFixedSize(32, 32)
 
         btn_subtract_dur_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
         btn_subtract_dur_secs.setFixedSize(32, 32)
@@ -62,6 +77,10 @@ class ActivityItemView(QWidget):
         self.setLayout(qvb)
         # self.setMinimumHeight(600)
 
+    def delete_activity(self):
+        # TODO Delete Activity
+        print("TODO Delete Activity")
+
     def activity_name_changed(self, new_name):
         self.activity.name = new_name
         self.update_activity_in_expt(self.activity)
@@ -88,4 +107,3 @@ class ActivityItemView(QWidget):
     def add_image2(self, btn_img2):
         # TODO Show file chooser & copy img-file to /assets
         print("# TODO Show file chooser & copy secondary img-file to /assets")
-

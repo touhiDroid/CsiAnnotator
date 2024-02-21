@@ -36,3 +36,58 @@ def get_proper_ann_time(ts_str):
     except ValueError:
         return -1
     return ts_ms * 1000 if ts_ms < 99999999999 else ts_ms
+
+
+def big_action_button_style():
+    return """
+                QPushButton {
+                    background-color: #97C9FF;
+                    border: 1px solid rgb(0, 0, 0, 0.1);
+                    color: black;
+                    padding: 10px 24px;
+                    text-align: center;
+                    text-decoration: none;
+                    display: inline-block;
+                    font-size: 16px;
+                    margin: 4px 2px;
+                    transition-duration: 0.4s;
+                    cursor: pointer;
+                    border-radius: 8px;
+                }
+
+                QPushButton:hover {
+                    background-color: #92C2FC;
+                    border: 1px solid rgba(0, 0, 0, 0.2);
+                }
+
+                QPushButton:pressed {
+                    background-color: #8DB9ED;
+                    border: 1px solid rgba(0, 0, 0, 0.1);
+                }
+            """
+
+
+def icon_only_button_style():
+    return """
+        QPushButton {
+            background-color: #F7F7F7;
+            border: 1px solid black;
+            color: black;
+            padding: 0px;
+            margin: 0px;
+            font-size: 0px;
+            width: 32px;  /* Adjust width as needed */
+            height: 32px; /* Adjust height as needed */
+            border-radius: 16px; /* Make it a circle */
+        }
+        
+        QPushButton:hover {
+            background-color: rgba(0, 0, 0, 0.1); /* Light gray background on hover */
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+        
+        QPushButton:pressed {
+            background-color: rgba(0, 0, 0, 0.2); /* Darker gray background when pressed */
+            border: 1px solid rgba(0, 0, 0, 0.0);
+        }
+    """

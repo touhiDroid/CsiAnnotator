@@ -1,10 +1,11 @@
 import time
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon, QFont, QColor
+from PyQt6.QtGui import QIcon, QFont, QColor, QPainter
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QScrollArea, QListWidget, \
     QListWidgetItem
 
+from src.helpers import big_action_button_style, icon_only_button_style
 from src.uis.ActivityItemView import ActivityItemView
 from src.uis.SessionWindow import SessionWindow
 
@@ -24,20 +25,21 @@ class ExptDetailsView(QWidget):
         et_expt_name.setFixedHeight(40)
         et_expt_name.setFont(QFont('Courier', 22, 400))
         et_expt_name.setPlaceholderText("Experiment Name")
-        et_expt_name.setStyleSheet("color: black; padding: 5px;")
+        et_expt_name.setStyleSheet("color: black; background-color: #CCDDFA; "
+                                   + "padding: 5px; border-style: 2px solid #000000; border-radius: 8px;")
         et_expt_name.textChanged.connect(self.expt_name_changed)
         self.title_change_ems = 0
         qh_title.addWidget(et_expt_name)
 
         btn_start = QPushButton("Start Experiment")
-        btn_start.setFixedSize(300, 40)
-        btn_start.setStyleSheet("color: black; padding: 5px;")
+        btn_start.setFixedSize(300, 48)
+        btn_start.setStyleSheet(big_action_button_style())
         btn_start.clicked.connect(self.start_expt_session)
         qh_title.addWidget(btn_start)
 
         btn_delete = QPushButton(icon=QIcon(f"{asset_dir}/icons/delete.png"))
         btn_delete.setFixedSize(40, 40)
-        btn_delete.setStyleSheet("color: black; padding: 5px;")
+        btn_delete.setStyleSheet(icon_only_button_style())
         btn_delete.clicked.connect(self.delete_expt)
         qh_title.addWidget(btn_delete)
 
@@ -57,8 +59,10 @@ class ExptDetailsView(QWidget):
         qh_tr_time.addWidget(btn_subtract_tr_secs)
 
         self.qlb_tr_secs = QLabel(str(self.experiment.transition_secs))
+        self.qlb_tr_secs .setFont(QFont('Courier', 18, 400, False))
+        self.qlb_tr_secs .setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_tr_secs.setStyleSheet("color: black;")
-        self.qlb_tr_secs.setFixedSize(48, 32)
+        self.qlb_tr_secs.setFixedSize(32, 32)
         qh_tr_time.addWidget(self.qlb_tr_secs)
 
         btn_add_tr_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/add.png"))
@@ -80,16 +84,20 @@ class ExptDetailsView(QWidget):
         btn_subtract_reps = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
         btn_subtract_reps.setFixedSize(32, 32)
         btn_subtract_reps.clicked.connect(self.reps_subtract_clicked)
+        btn_subtract_reps.setStyleSheet(icon_only_button_style())
         qh_reps.addWidget(btn_subtract_reps)
 
         self.qlb_reps = QLabel(str(self.experiment.reps_per_activity))
+        self.qlb_reps .setFont(QFont('Courier', 18, 400, False))
+        self.qlb_reps .setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_reps.setStyleSheet("color: black;")
-        self.qlb_reps.setFixedSize(48, 32)
+        self.qlb_reps.setFixedSize(32, 32)
         qh_reps.addWidget(self.qlb_reps)
 
         btn_add_reps = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/add.png"))
         btn_add_reps.setFixedSize(32, 32)
         btn_add_reps.clicked.connect(self.reps_add_clicked)
+        btn_add_reps.setStyleSheet(icon_only_button_style())
         qh_reps.addWidget(btn_add_reps)
 
         qh_reps.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -98,18 +106,18 @@ class ExptDetailsView(QWidget):
 
         # region : Activity Listing
         # qsa_activities = QScrollArea()
-        qvb_activities = QVBoxLayout()
+        # qvb_activities = QVBoxLayout()
 
         qlb_activities_title = QLabel("# Activities: ")
         qlb_activities_title.setFont(QFont('Courier', 18, 400, False))
         qlb_activities_title.setFixedSize(300, 48)
-        qvb_activities.addWidget(qlb_activities_title)
+        qvl_parent.addWidget(qlb_activities_title)
 
         qlist_activities = QListWidget()
-        colors = ["#E5E5F5", "#FFFAFA"]
+        colors = ["#E5E5F5", "#FEEAEA"]
         ci = 0
         for act in self.experiment.activities:
-            list_item_view = ActivityItemView(act, self.asset_dir, self.update_activity_in_expt)
+            list_item_view = ActivityItemView(act, self.asset_dir, self.update_activity_in_expt, colors[ci])
             ql_widget = QListWidgetItem(qlist_activities)
             ql_widget.setSizeHint(list_item_view.sizeHint())
             ql_widget.setBackground(QColor(colors[ci]))
@@ -117,20 +125,29 @@ class ExptDetailsView(QWidget):
 
             qlist_activities.addItem(ql_widget)
             qlist_activities.setItemWidget(ql_widget, list_item_view)
-            # break  # FIXME
 
-        qvb_activities.addWidget(qlist_activities)
-        qvl_parent.addLayout(qvb_activities)
+        # qvb_activities.addWidget(qlist_activities)
+        # qvb_activities.setStretchFactor(qlist_activities, 1)
+        qlist_activities.setFrameShape(QListWidget.Shape.Box)
+        qlist_activities.setFrameShadow(QListWidget.Shadow.Plain)
+        qvl_parent.addWidget(qlist_activities)
+        qvl_parent.setStretchFactor(qlist_activities, 1)
         # endregion : Activity Listing
 
         btn_add_activity = QPushButton(icon=QIcon(f'{self.asset_dir}/icons/add.png'), text='Add New Activity')
+        btn_add_activity.setFixedHeight(54)
         btn_add_activity.clicked.connect(self.add_activity)
+        btn_add_activity.setStyleSheet(big_action_button_style())
         qvl_parent.addWidget(btn_add_activity)
-
         qvl_parent.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.setLayout(qvl_parent)
 
-        # self.setStyleSheet("background-color: orange;")
+        self.setLayout(qvl_parent)
+        self.setStyleSheet("color: black;")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setPen(QColor("#CCDDFF"))  # Set border color
+        painter.drawRect(self.rect())  # Draw border around the widget
 
     def save_experiment(self):
         # TODO Save self.experiment into  ../data/data.json file
