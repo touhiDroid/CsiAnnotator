@@ -5,7 +5,7 @@ from PyQt6.QtGui import QFont, QIcon, QFontDatabase, QColor, QPalette
 from PyQt6.QtWidgets import QMainWindow, QGridLayout, QWidget, QListWidget, QLabel, QAbstractItemView, \
     QPushButton, QVBoxLayout, QHBoxLayout
 
-from src.helpers import big_action_button_style
+from src.helpers import big_action_button_style, show_under_construction_message
 from src.models.Experiment import Experiment
 from src.uis.ExptDetailsView import ExptDetailsView
 
@@ -59,6 +59,7 @@ class HomeWindow(QMainWindow):
         btn_add_expt.setFixedSize(300, 54)
         btn_add_expt.setIconSize(QSize(32, 32))
         btn_add_expt.setStyleSheet(big_action_button_style())
+        btn_add_expt.clicked.connect(self.add_expt_clicked)
         parent_lt.addWidget(btn_add_expt, 12, 0, 1, 1)
 
         sep_color = Color("#0C0D0F")
@@ -91,3 +92,7 @@ class HomeWindow(QMainWindow):
             self.qvl_expt_details.addWidget(self.expt_details_view)
         except AttributeError as ae:
             print(ae)
+
+    def add_expt_clicked(self):
+        # TODO Add experiment
+        show_under_construction_message(self.asset_dir)

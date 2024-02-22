@@ -2,15 +2,16 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QLabel, QPushButton
 
-from src.helpers import icon_only_button_style
+from src.helpers import icon_only_button_style, show_under_construction_message
 
 
 class ActivityItemView(QWidget):
-    def __init__(self, serial, activity, asset_dir, update_activity_in_expt, color_str):
+    def __init__(self, serial, activity, asset_dir, update_activity_in_expt, color_str, item_deleted):
         super(ActivityItemView, self).__init__()
         self.activity = activity
         self.asset_dir = asset_dir
         self.update_activity_in_expt = update_activity_in_expt
+        self.item_deleted = item_deleted
 
         qvb = QVBoxLayout()
 
@@ -32,7 +33,7 @@ class ActivityItemView(QWidget):
         btn_delete = QPushButton(icon=QIcon(f"{asset_dir}/icons/delete.png"))
         btn_delete.setFixedSize(32, 32)
         btn_delete.setStyleSheet(icon_only_button_style())
-        btn_delete.clicked.connect(self.delete_activity)
+        btn_delete.clicked.connect(lambda: self.delete_activity(serial))
         qhb_title.addStretch(1)
         qhb_title.addWidget(btn_delete)
         qvb.addLayout(qhb_title)
@@ -41,13 +42,13 @@ class ActivityItemView(QWidget):
         qhb_dur = QHBoxLayout()
         qlb_dur_title = QLabel("# Duration: ")
         qlb_dur_title.setFont(QFont('Courier', 16, 400, False))
-        qlb_dur_title.setStyleSheet("background-color: " + color_str + ";")
+        qlb_dur_title.setStyleSheet("background-color: transparent;")
         qlb_dur_title.setFixedSize(120, 32)
         qhb_dur.addWidget(qlb_dur_title)
 
         qlb_dur = QLabel(str(activity.duration_secs))
         qlb_dur.setFont(QFont('Courier', 16, 400, False))
-        qlb_dur.setStyleSheet("background-color: " + color_str + "; color: black;")
+        qlb_dur.setStyleSheet("background-color: transparent; color: black;")
         qlb_dur.setAlignment(Qt.AlignmentFlag.AlignCenter)
         qlb_dur.setFixedSize(32, 32)
 
@@ -70,12 +71,14 @@ class ActivityItemView(QWidget):
         # endregion : Reps. Per Activity
 
         qhb_img = QHBoxLayout()
-        btn_img1 = QPushButton(text='Primary Image', icon=QIcon(f"{self.asset_dir}/icons/activity_image.png"))
+        img1_text = self.activity.img1 if len(self.activity.img1) > 0 else 'Primary Image'
+        btn_img1 = QPushButton(text=img1_text, icon=QIcon(f"{self.asset_dir}/icons/activity_image.png"))
         btn_img1.setFixedHeight(40)
         btn_img1.clicked.connect(lambda: self.add_image1(btn_img1))
         qhb_img.addWidget(btn_img1)
 
-        btn_img2 = QPushButton(text='Secondary Image', icon=QIcon(f"{self.asset_dir}/icons/activity_image.png"))
+        img2_text = self.activity.img2 if len(self.activity.img2) > 0 else 'Secondary Image'
+        btn_img2 = QPushButton(text=img2_text, icon=QIcon(f"{self.asset_dir}/icons/activity_image.png"))
         btn_img2.setFixedHeight(40)
         btn_img2.clicked.connect(lambda: self.add_image2(btn_img2))
         qhb_img.addWidget(btn_img2)
@@ -84,16 +87,14 @@ class ActivityItemView(QWidget):
         self.setLayout(qvb)
         # self.setMinimumHeight(600)
 
-    def delete_activity(self):
-        # TODO Delete Activity
-        print("TODO Delete Activity")
+    def delete_activity(self, serial):
+        self.item_deleted(self.activity, serial)
 
     def activity_name_changed(self, new_name):
         self.activity.name = new_name
         self.update_activity_in_expt(self.activity)
 
     def dur_subtract_clicked(self, qlb_dur):
-        print(f"TODO Show on UI & save into JSON file saying one-LESS duration second for '{self.activity.name}'")
         if self.activity.duration_secs <= 1:
             return
         self.activity.duration_secs -= 1
@@ -102,15 +103,14 @@ class ActivityItemView(QWidget):
         self.update_activity_in_expt(self.activity)
 
     def dur_add_clicked(self, qlb_dur):
-        print(f"TODO Show on UI & save into JSON file saying one-MORE duration second for '{self.activity.name}'")
         self.activity.duration_secs += 1
         qlb_dur.setText(str(self.activity.duration_secs))
         self.update_activity_in_expt(self.activity)
 
     def add_image1(self, btn_img1):
         # TODO Show file chooser & copy img-file to /assets
-        print("# TODO Show file chooser & copy primary img-file to /assets")
+        show_under_construction_message(self.asset_dir)
 
     def add_image2(self, btn_img2):
         # TODO Show file chooser & copy img-file to /assets
-        print("# TODO Show file chooser & copy secondary img-file to /assets")
+        show_under_construction_message(self.asset_dir)

@@ -1,4 +1,8 @@
 # Print iterations progress
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QMessageBox
+
+
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', print_end="\r"):
     """
     Call in a loop to create terminal progress bar
@@ -88,3 +92,31 @@ def icon_only_button_style():
             border: 1px solid rgba(0, 0, 0, 0.0);
         }
     """
+
+
+def progressbar_style():
+    return """
+            QProgressBar {
+                border: 2px grey;
+                border-radius: 6px;
+                background-color: #E0E0E0;
+            }
+            QProgressBar::chunk {
+                background-color: #6699FF;
+                width: 20px;
+            }
+    """
+
+
+def show_message(title, msg, asset_dir):
+    msgBox = QMessageBox()
+    msgBox.setWindowTitle(title)
+    msgBox.setText(msg)
+    msgBox.setIconPixmap(QIcon(f"{asset_dir}/icons/app.png").pixmap(48, 48))
+    msgBox.setStandardButtons(QMessageBox.StandardButton.Ok)
+    msgBox.exec()
+
+
+def show_under_construction_message(asset_dir):
+    show_message("Not Implemented!", "Please be patient, this feature is still under construction ...",
+                 asset_dir)

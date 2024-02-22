@@ -2,10 +2,10 @@ import time
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QFont, QColor, QPainter
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QScrollArea, QListWidget, \
-    QListWidgetItem
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QListWidget, \
+    QListWidgetItem, QInputDialog
 
-from src.helpers import big_action_button_style, icon_only_button_style
+from src.helpers import big_action_button_style, icon_only_button_style, api, show_under_construction_message
 from src.uis.ActivityItemView import ActivityItemView
 from src.uis.SessionWindow import SessionWindow
 
@@ -115,25 +115,26 @@ class ExptDetailsView(QWidget):
         qlb_activities_title.setFixedSize(300, 48)
         qvl_parent.addWidget(qlb_activities_title)
 
-        qlist_activities = QListWidget()
-        colors = ["#E5E5F5", "#FEEAEA"]
+        self.qlist_activities = QListWidget()
+        self.activity_colors = ["#E5E5F5", "#FEEAEA"]
         idx = 1
         for act in self.experiment.activities:
-            list_item_view = ActivityItemView(idx, act, self.asset_dir, self.update_activity_in_expt, colors[idx % 2])
-            ql_widget = QListWidgetItem(qlist_activities)
+            list_item_view = ActivityItemView(idx, act, self.asset_dir, self.update_activity_in_expt,
+                                              self.activity_colors[idx % 2], self.activity_item_deleted)
+            ql_widget = QListWidgetItem(self.qlist_activities)
             ql_widget.setSizeHint(list_item_view.sizeHint())
-            ql_widget.setBackground(QColor(colors[idx % 2]))
+            ql_widget.setBackground(QColor(self.activity_colors[idx % 2]))
             idx += 1
 
-            qlist_activities.addItem(ql_widget)
-            qlist_activities.setItemWidget(ql_widget, list_item_view)
+            self.qlist_activities.addItem(ql_widget)
+            self.qlist_activities.setItemWidget(ql_widget, list_item_view)
 
         # qvb_activities.addWidget(qlist_activities)
         # qvb_activities.setStretchFactor(qlist_activities, 1)
-        qlist_activities.setFrameShape(QListWidget.Shape.Box)
-        qlist_activities.setFrameShadow(QListWidget.Shadow.Plain)
-        qvl_parent.addWidget(qlist_activities)
-        qvl_parent.setStretchFactor(qlist_activities, 1)
+        self.qlist_activities.setFrameShape(QListWidget.Shape.Box)
+        self.qlist_activities.setFrameShadow(QListWidget.Shadow.Plain)
+        qvl_parent.addWidget(self.qlist_activities)
+        qvl_parent.setStretchFactor(self.qlist_activities, 1)
         # endregion : Activity Listing
 
         btn_add_activity = QPushButton(icon=QIcon(f'{self.asset_dir}/icons/add.png'), text='Add New Activity')
@@ -161,6 +162,16 @@ class ExptDetailsView(QWidget):
                 self.experiment.activities[i] = activity
         self.save_experiment()
 
+    def activity_item_deleted(self, act, serial):
+        new_acts = []
+        for a in self.experiment.activities:
+            if a.id == act.id:
+                continue
+            new_acts.append(a)
+        self.qlist_activities.takeItem(serial - 1)
+        self.experiment.activities = new_acts
+        self.save_experiment()
+
     def expt_name_changed(self, new_text):
         now = time.time()
         if now - self.title_change_ems < 100:
@@ -170,11 +181,10 @@ class ExptDetailsView(QWidget):
         self.save_experiment()
 
     def delete_expt(self):
-        print("Delete Clicked")
         # TODO Delete experiment
+        show_under_construction_message(self.asset_dir)
 
     def transition_secs_subtract_clicked(self):
-        print("TODO Show on UI & save into JSON file saying one-LESS transition second")
         if self.experiment.transition_secs <= 1:
             return
         self.experiment.transition_secs -= 1
@@ -182,13 +192,11 @@ class ExptDetailsView(QWidget):
         self.save_experiment()
 
     def transition_secs_add_clicked(self):
-        print("TODO Show on UI & save into JSON file saying one-MORE transition second")
         self.experiment.transition_secs += 1
         self.qlb_tr_secs.setText(str(self.experiment.transition_secs))
         self.save_experiment()
 
     def reps_subtract_clicked(self):
-        print("TODO Show on UI & save into JSON file saying one-LESS rep. per activity")
         if self.experiment.reps_per_activity <= 1:
             return
         self.experiment.reps_per_activity -= 1
@@ -196,16 +204,19 @@ class ExptDetailsView(QWidget):
         self.save_experiment()
 
     def reps_add_clicked(self):
-        print("TODO Show on UI & save into JSON file saying one-MORE rep. per activity")
         self.experiment.reps_per_activity += 1
         self.qlb_reps.setText(str(self.experiment.reps_per_activity))
         self.save_experiment()
 
     def add_activity(self):
         # TODO Add activity UI with default texts, let it be edited, save into the expt. model
-        print("Add Activity Clicked")
+        show_under_construction_message(self.asset_dir)
 
     def start_expt_session(self):
-        window = SessionWindow(asset_dir=self.asset_dir)
-        window.showMaximized()
-        window.show()
+        new_name, ok = QInputDialog.getText(self, 'New Experiment Session', 'Enter Session/Participant Name:')
+        if ok:
+            api.reset_for_new_session(new_name)
+            window = SessionWindow(self.experiment, new_name, asset_dir=self.asset_dir)
+            window.showMaximized()
+            window.show()
+
