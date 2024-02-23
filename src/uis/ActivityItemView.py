@@ -1,6 +1,6 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QIcon
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QLabel, QPushButton
 
 from src.helpers import icon_only_button_style, show_under_construction_message
 

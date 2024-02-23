@@ -1,8 +1,8 @@
 import time
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon, QFont, QColor, QPainter
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QListWidget, \
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon, QFont, QColor, QPainter
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QListWidget, \
     QListWidgetItem, QInputDialog
 
 from src.helpers import big_action_button_style, icon_only_button_style, api, show_under_construction_message
@@ -219,4 +219,3 @@ class ExptDetailsView(QWidget):
             window = SessionWindow(self.experiment, new_name, asset_dir=self.asset_dir)
             window.showMaximized()
             window.show()
-

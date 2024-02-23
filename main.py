@@ -2,8 +2,8 @@
 import os
 import sys
 
-from PyQt6.QtQuick import QQuickWindow
-from PyQt6.QtWidgets import (
+from PyQt5.QtQuick import QQuickWindow
+from PyQt5.QtWidgets import (
     QApplication,
 )
 

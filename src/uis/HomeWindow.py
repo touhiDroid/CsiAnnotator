@@ -1,9 +1,9 @@
 import json
 
-from PyQt6.QtCore import QSize
-from PyQt6.QtGui import QFont, QIcon, QFontDatabase, QColor, QPalette
-from PyQt6.QtWidgets import QMainWindow, QGridLayout, QWidget, QListWidget, QLabel, QAbstractItemView, \
-    QPushButton, QVBoxLayout, QHBoxLayout
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QFont, QIcon, QColor, QPalette
+from PyQt5.QtWidgets import QMainWindow, QGridLayout, QWidget, QListWidget, QLabel, QAbstractItemView, \
+    QPushButton, QVBoxLayout
 
 from src.helpers import big_action_button_style, show_under_construction_message
 from src.models.Experiment import Experiment

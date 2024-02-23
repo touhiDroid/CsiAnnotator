@@ -1,6 +1,6 @@
 # Print iterations progress
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QMessageBox
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMessageBox
 
 
 def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', print_end="\r"):

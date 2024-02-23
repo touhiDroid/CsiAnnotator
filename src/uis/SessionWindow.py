@@ -2,9 +2,9 @@ from enum import Enum
 from math import ceil
 from sys import stderr
 
-from PyQt6.QtCore import Qt, QTimer, QSize
-from PyQt6.QtGui import QPixmap, QFont, QIcon
-from PyQt6.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton
+from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtGui import QPixmap, QFont, QIcon
+from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton
 
 from src.helpers import icon_only_button_style, progressbar_style, api
 from src.models.Activity import Activity
