@@ -131,8 +131,12 @@ class SessionWindow(QMainWindow):
         self.setCentralWidget(widget)
 
     def close_clicked(self):
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint & ~Qt.FramelessWindowHint)
+        self.showNormal()
+        self.setGeometry(100, 100, 600, 400)
         # Post 'none' annotation before closing
         api.post_next_action_label(STR_NONE)
+        # self.close() <-- Instead of directly calling, we're giving the OS a little bit of delay to dispose the resources first
         self.close()
 
     def pause_clicked(self):
