@@ -98,7 +98,7 @@ class ActivityItemView(QWidget):
         self.update_activity_in_expt(self.activity)
 
     def dur_subtract_clicked(self, qlb_dur):
-        if self.activity.duration_secs <= 1:
+        if self.activity.duration_secs <= 5:
             return
         self.activity.duration_secs -= 1
         qlb_dur.setText(str(self.activity.duration_secs))

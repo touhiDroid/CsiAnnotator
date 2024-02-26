@@ -174,7 +174,7 @@ class ExptDetailsView(QWidget):
 
     def expt_name_changed(self, new_text):
         now = time.time()
-        if now - self.title_change_ems < 100:
+        if now - self.title_change_ems < 500:
             return
         self.title_change_ems = now
         self.experiment.name = new_text
@@ -185,7 +185,7 @@ class ExptDetailsView(QWidget):
         show_under_construction_message(self.asset_dir)
 
     def transition_secs_subtract_clicked(self):
-        if self.experiment.transition_secs <= 1:
+        if self.experiment.transition_secs <= 5:
             return
         self.experiment.transition_secs -= 1
         self.qlb_tr_secs.setText(str(self.experiment.transition_secs))
