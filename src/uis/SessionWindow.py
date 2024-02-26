@@ -4,7 +4,8 @@ from sys import stderr
 
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QPixmap, QFont, QIcon
-from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton, \
+    QDesktopWidget
 
 from src.helpers import icon_only_button_style, progressbar_style, api
 from src.models.Activity import Activity
@@ -18,8 +19,8 @@ def get_img(path):
     img = QPixmap(path)
     lbl.setPixmap(img)
     lbl.setScaledContents(True)
-    lbl.setMaximumWidth(500)
-    lbl.setMaximumHeight(450)
+    lbl.setMaximumWidth(300)
+    lbl.setMaximumHeight(270)
     return lbl
 
 
@@ -35,7 +36,13 @@ class SessionWindow(QMainWindow):
     def __init__(self, experiment, session_name, asset_dir):
         super().__init__()
         self.setWindowTitle(experiment.name)
+        self.setWindowIcon(QIcon(f"{asset_dir}/icons/app_icon.png"))
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        screen_geometry = QDesktopWidget().screenGeometry()
+        screen_geometry.setY(screen_geometry.y()-80)
+        self.setGeometry(screen_geometry)
+        self.showFullScreen()
+
         self.experiment = experiment
         self.asset_dir = asset_dir
 
@@ -47,59 +54,61 @@ class SessionWindow(QMainWindow):
         self.countdown = self.experiment.transition_secs  # `self.countdown` should be decremented by 0.5s, as the timer expires every 500ms
 
         self.qvl_parent = QVBoxLayout()
-        self.qvl_parent.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.qvl_parent.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
+        qhb_menu_bar = QHBoxLayout()
+        btn_close = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/close.png"))
+        btn_close.setIconSize(QSize(32, 32))
+        btn_close.setFixedSize(48, 48)
+        btn_close.clicked.connect(self.close_clicked)
+        btn_close.setStyleSheet(icon_only_button_style())
+        qhb_menu_bar.addWidget(btn_close)
+        qlb_dummy_bottom = QLabel()
+        qhb_menu_bar.addWidget(qlb_dummy_bottom)
+        qhb_menu_bar.setStretchFactor(qlb_dummy_bottom, 1)
+        self.btn_pause = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/pause.png"))
+        self.btn_pause.setIconSize(QSize(24, 24))
+        self.btn_pause.setFixedSize(48, 48)
+        self.btn_pause.clicked.connect(self.pause_clicked)
+        self.btn_pause.setStyleSheet(icon_only_button_style())
+        qhb_menu_bar.addWidget(self.btn_pause)
+        self.qvl_parent.addLayout(qhb_menu_bar)
 
         self.qlb_session = QLabel(f"Session/Participant: {session_name}")
-        self.qlb_session.setFont(QFont('Courier', 18, 900, False))
-        self.qlb_session.setStyleSheet('padding: 24px; color:red')
+        self.qlb_session.setFont(QFont('Courier', 14, 900, False))
+        self.qlb_session.setStyleSheet('padding: 8px; color:red')
         self.qvl_parent.addWidget(self.qlb_session, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.qlb_rep_no = QLabel(f"Repetition: {self.curr_rep_no}/{self.experiment.reps_per_activity}")
-        self.qlb_rep_no.setFont(QFont('Courier', 24, 600, False))
-        self.qlb_rep_no.setStyleSheet('padding: 24px;')
+        self.qlb_rep_no.setFont(QFont('Courier', 18, 600, False))
+        self.qlb_rep_no.setStyleSheet('padding: 8px;')
         self.qvl_parent.addWidget(self.qlb_rep_no, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.qlb_wait_time = QLabel(f"{self.countdown}")
-        self.qlb_wait_time.setFont(QFont('Courier', 96, 800, False))
-        self.qlb_wait_time.setStyleSheet('padding: 48px;')
-        self.qvl_parent.addWidget(self.qlb_wait_time, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.qlb_img = get_img(f'{self.asset_dir}/expt/dish_mv_rg1.png')
         self.qlb_img.setVisible(False)
         self.qvl_parent.addWidget(self.qlb_img, alignment=Qt.AlignmentFlag.AlignCenter)
 
+        self.qlb_wait_time = QLabel(f"{self.countdown}")
+        self.qlb_wait_time.setFont(QFont('Courier', 84, 800, False))
+        self.qlb_wait_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.qlb_wait_time.setFixedSize(self.qlb_img.size())
+        self.qlb_wait_time.setStyleSheet('padding: 16px;')
+        self.qvl_parent.addWidget(self.qlb_wait_time, alignment=Qt.AlignmentFlag.AlignCenter)
+
         self.qpb_action_time = QProgressBar()
         self.qpb_action_time.setTextVisible(False)
-        self.qpb_action_time.setMinimumSize(600, 32)
-        self.qpb_action_time.setMaximumSize(800, 48)
+        self.qpb_action_time.setMinimumSize(600, 16)
+        self.qpb_action_time.setMaximumSize(800, 24)
         self.qpb_action_time.setMaximum(100)
         self.qpb_action_time.setValue(35)
         self.qpb_action_time.setStyleSheet(progressbar_style())
         self.qvl_parent.addWidget(self.qpb_action_time, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.qlb_activity_name = QLabel(f"Current Activity: {self.curr_activity.name}")
-        self.qlb_activity_name.setFont(QFont('Courier', 20, 600, False))
-        self.qlb_activity_name.setStyleSheet('padding: 24px;')
+        self.qlb_activity_name.setFont(QFont('Courier', 16, 600, False))
+        self.qlb_activity_name.setStyleSheet('padding: 8px;')
         self.qvl_parent.addWidget(self.qlb_activity_name, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.qvl_parent.addStretch()
-
-        qhb_bottom_bar = QHBoxLayout()
-        btn_close = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/close.png"))
-        btn_close.setIconSize(QSize(32, 32))
-        btn_close.setFixedSize(64, 64)
-        btn_close.clicked.connect(self.close_clicked)
-        btn_close.setStyleSheet(icon_only_button_style())
-        qhb_bottom_bar.addWidget(btn_close)
-        qlb_dummy_bottom = QLabel()
-        qhb_bottom_bar.addWidget(qlb_dummy_bottom)
-        qhb_bottom_bar.setStretchFactor(qlb_dummy_bottom, 1)
-        self.btn_pause = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/pause.png"))
-        self.btn_pause.setIconSize(QSize(32, 32))
-        self.btn_pause.setFixedSize(64, 64)
-        self.btn_pause.clicked.connect(self.pause_clicked)
-        self.btn_pause.setStyleSheet(icon_only_button_style())
-        qhb_bottom_bar.addWidget(self.btn_pause)
-        self.qvl_parent.addLayout(qhb_bottom_bar)
+        # self.qvl_parent.addStretch()
 
         self.imgUpdateTimer = QTimer(self)
         self.imgUpdateTimer.setInterval(500)  # .5 seconds
@@ -110,7 +119,6 @@ class SessionWindow(QMainWindow):
         widget.setStyleSheet("background-color: white; color: black;")
         widget.setLayout(self.qvl_parent)
         self.setCentralWidget(widget)
-        self.showFullScreen()
 
     def close_clicked(self):
         # Post 'none' annotation before closing

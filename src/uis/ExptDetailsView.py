@@ -23,7 +23,7 @@ class ExptDetailsView(QWidget):
         et_expt_name = QLineEdit(self.experiment.name)
         et_expt_name.setMaxLength(20)
         et_expt_name.setFixedHeight(40)
-        et_expt_name.setFont(QFont('Courier', 22, 400))
+        et_expt_name.setFont(QFont('Courier', 17, 400))
         et_expt_name.setPlaceholderText("Experiment Name")
         et_expt_name.setStyleSheet("color: black; background-color: #CCDDFA; "
                                    + "padding: 5px; border-style: 2px solid #000000; border-radius: 8px;")
@@ -32,7 +32,7 @@ class ExptDetailsView(QWidget):
         qh_title.addWidget(et_expt_name)
 
         btn_start = QPushButton("Start Experiment")
-        btn_start.setFixedSize(300, 48)
+        btn_start.setFixedSize(180, 48)
         btn_start.setStyleSheet(big_action_button_style())
         btn_start.clicked.connect(self.start_expt_session)
         qh_title.addWidget(btn_start)
@@ -49,8 +49,8 @@ class ExptDetailsView(QWidget):
         # region : Transition Time
         qh_tr_time = QHBoxLayout()
         qlb_tr_time_title = QLabel("# Transition Time: ")
-        qlb_tr_time_title.setFont(QFont('Courier', 18, 300, False))
-        qlb_tr_time_title.setFixedSize(200, 48)
+        qlb_tr_time_title.setFont(QFont('Courier', 16, 300, False))
+        qlb_tr_time_title.setFixedSize(360, 48)
         qh_tr_time.addWidget(qlb_tr_time_title)
 
         btn_subtract_tr_secs = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
@@ -60,7 +60,7 @@ class ExptDetailsView(QWidget):
         qh_tr_time.addWidget(btn_subtract_tr_secs)
 
         self.qlb_tr_secs = QLabel(str(self.experiment.transition_secs))
-        self.qlb_tr_secs.setFont(QFont('Courier', 18, 400, False))
+        self.qlb_tr_secs.setFont(QFont('Courier', 16, 400, False))
         self.qlb_tr_secs.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_tr_secs.setStyleSheet("color: black;")
         self.qlb_tr_secs.setFixedSize(32, 32)
@@ -79,8 +79,8 @@ class ExptDetailsView(QWidget):
         # region : Reps. Per Activity
         qh_reps = QHBoxLayout()
         qlb_reps_title = QLabel("# Repetitions Per Activity: ")
-        qlb_reps_title.setFont(QFont('Courier', 18, 300, False))
-        qlb_reps_title.setFixedSize(300, 48)
+        qlb_reps_title.setFont(QFont('Courier', 16, 300, False))
+        qlb_reps_title.setFixedSize(360, 48)
         qh_reps.addWidget(qlb_reps_title)
 
         btn_subtract_reps = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
@@ -90,7 +90,7 @@ class ExptDetailsView(QWidget):
         qh_reps.addWidget(btn_subtract_reps)
 
         self.qlb_reps = QLabel(str(self.experiment.reps_per_activity))
-        self.qlb_reps.setFont(QFont('Courier', 18, 400, False))
+        self.qlb_reps.setFont(QFont('Courier', 16, 400, False))
         self.qlb_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_reps.setStyleSheet("color: black;")
         self.qlb_reps.setFixedSize(32, 32)
@@ -111,7 +111,7 @@ class ExptDetailsView(QWidget):
         # qvb_activities = QVBoxLayout()
 
         qlb_activities_title = QLabel("# Activities: ")
-        qlb_activities_title.setFont(QFont('Courier', 18, 400, False))
+        qlb_activities_title.setFont(QFont('Courier', 16, 400, False))
         qlb_activities_title.setFixedSize(300, 48)
         qvl_parent.addWidget(qlb_activities_title)
 

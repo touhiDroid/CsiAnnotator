@@ -26,15 +26,16 @@ class HomeWindow(QMainWindow):
         self.data_dir = data_dir
         self.asset_dir = asset_dir
         self.setWindowTitle("CSI Annotator")
+        self.setWindowIcon(QIcon(f"{asset_dir}/icons/app_icon.png"))
         self.asset_dir = asset_dir
         # setting geometry
         # self.setGeometry(100, 100, 600, 400)
 
         parent_lt = QGridLayout()
 
-        q_label_expt = QLabel("\u25BC Experiments")
+        q_label_expt = QLabel("\u25BCExperiments")
         print(q_label_expt.font().family())
-        q_label_expt.setFont(QFont('Courier', 32, 800, False))
+        q_label_expt.setFont(QFont('Courier', 24, 800, False))
         q_label_expt.setStyleSheet("color: black;")  # background-color: orange;
         parent_lt.addWidget(q_label_expt, 0, 0, 1, 1)
 
@@ -50,14 +51,14 @@ class HomeWindow(QMainWindow):
         # noinspection PyUnresolvedReferences
         expt_list.currentTextChanged.connect(self.expt_name_changed)
         expt_list.setCurrentRow(0)
-        expt_list.setFont(QFont('Courier', 20, 500, True))
+        expt_list.setFont(QFont('Courier', 16, 500, True))
         expt_list.setStyleSheet("color: black; padding: 0px;")  # background-color: yellow;
         expt_list.setSpacing(0)
         parent_lt.addWidget(expt_list, 1, 0, 12, 1)
 
         btn_add_expt = QPushButton(icon=QIcon(f"{asset_dir}/icons/add.png"), text="Add New Experiment", parent=self)
         btn_add_expt.setFixedSize(300, 54)
-        btn_add_expt.setIconSize(QSize(32, 32))
+        btn_add_expt.setIconSize(QSize(28, 28))
         btn_add_expt.setStyleSheet(big_action_button_style())
         btn_add_expt.clicked.connect(self.add_expt_clicked)
         parent_lt.addWidget(btn_add_expt, 12, 0, 1, 1)
