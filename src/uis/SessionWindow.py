@@ -2,8 +2,9 @@ from enum import Enum
 from math import ceil
 from sys import stderr
 
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtCore import Qt, QTimer, QSize, QUrl
 from PyQt5.QtGui import QPixmap, QFont, QIcon
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton, \
     QDesktopWidget
 
@@ -37,9 +38,9 @@ class SessionWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(experiment.name)
         self.setWindowIcon(QIcon(f"{asset_dir}/icons/app_icon.png"))
-        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowFullScreen)
         screen_geometry = QDesktopWidget().screenGeometry()
-        screen_geometry.setY(screen_geometry.y()-80)
+        # screen_geometry.setY(screen_geometry.y()-80)
         self.setGeometry(screen_geometry)
         self.showFullScreen()
 
@@ -52,6 +53,15 @@ class SessionWindow(QMainWindow):
         self.curr_activity = TR_ACTIVITY
         self.last_activity_id = -1
         self.countdown = self.experiment.transition_secs  # `self.countdown` should be decremented by 0.5s, as the timer expires every 500ms
+
+        self.start_mp_sound = QMediaPlayer()
+        self.start_mp_sound.setMedia(QMediaContent(QUrl.fromLocalFile(f"{self.asset_dir}/sounds/start_4secs.mp3")))
+        self.start_mp_sound.stateChanged.connect(lambda: self.start_sound_ended)
+        self.start_mp_sound.error.connect(self.media_error)
+        self.stop_mp_sound = QMediaPlayer()
+        self.stop_mp_sound.setMedia(QMediaContent(QUrl.fromLocalFile(f"{self.asset_dir}/sounds/stop_4secs.mp3")))
+        self.stop_mp_sound.stateChanged.connect(lambda: self.stop_sound_ended)
+        self.stop_mp_sound.error.connect(self.media_error)
 
         self.qvl_parent = QVBoxLayout()
         self.qvl_parent.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
@@ -142,11 +152,17 @@ class SessionWindow(QMainWindow):
 
         if self.curr_state == SessionStates.STARTING or self.curr_state == SessionStates.TRANSITION:
             self.qlb_wait_time.setText(f"{int(ceil(self.countdown))}")
+            if self.countdown == 3.5:
+                # Play start sound
+                self.start_mp_sound.play()
             if self.countdown <= 0:
                 self.curr_state = SessionStates.IMG_1
             self.qpb_action_time.setValue(int(self.countdown * 100 / self.experiment.transition_secs))
 
         elif self.curr_state == SessionStates.IMG_1 or self.curr_state == SessionStates.IMG_2:
+            if self.countdown == 3.5:
+                # Play stop sound
+                self.stop_mp_sound.play()
             self.handle_activity_session()
             self.qpb_action_time.setValue(int(self.countdown * 100 / self.curr_activity.duration_secs))
 
@@ -183,6 +199,14 @@ class SessionWindow(QMainWindow):
             self.curr_activity = TR_ACTIVITY
             api.post_next_action_label(self.curr_activity.name if self.curr_activity.id != TR_ACTIVITY.id else STR_NONE)
 
+    def start_sound_ended(self):
+        if self.start_mp_sound.state() == QMediaPlayer.EndOfMedia:
+            self.start_mp_sound.stop()
+
+    def stop_sound_ended(self):
+        if self.stop_mp_sound.state() == QMediaPlayer.EndOfMedia:
+            self.stop_mp_sound.stop()
+
     def pick_next_activity(self):
         if self.last_activity_id == -1:
             return self.experiment.activities[0]
@@ -195,4 +219,14 @@ class SessionWindow(QMainWindow):
                 return self.experiment.activities[idx]
         return TR_ACTIVITY
 
-    # TODO Add close-event to post `none` label
+    # noinspection PyMethodMayBeStatic
+    def media_error(self, error):
+        print("Media player error:", error)
+
+    def closeEvent(self, event):
+        try:
+            self.imgUpdateTimer.stop()
+            self.imgUpdateTimer.deleteLater()
+        except Exception as e:
+            print("QTimer deletion error on window close:", e)
+        event.accept()
