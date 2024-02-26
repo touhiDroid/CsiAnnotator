@@ -1,6 +1,8 @@
+import shutil
+
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtGui import QFont, QIcon, QPixmap
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QHBoxLayout, QLabel, QPushButton, QFileDialog
 
 from src.helpers import icon_only_button_style, show_under_construction_message
 
@@ -74,6 +76,7 @@ class ActivityItemView(QWidget):
         img1_text = self.activity.img1 if len(self.activity.img1) > 0 else 'Primary Image'
         btn_img1 = QPushButton(text=img1_text, icon=QIcon(f"{self.asset_dir}/icons/activity_image.png"))
         btn_img1.setFixedHeight(40)
+        btn_img1.setIcon(QIcon(QPixmap(f"{self.asset_dir}/expt/")))
         btn_img1.clicked.connect(lambda: self.add_image1(btn_img1))
         qhb_img.addWidget(btn_img1)
 
@@ -109,8 +112,26 @@ class ActivityItemView(QWidget):
 
     def add_image1(self, btn_img1):
         # TODO Show file chooser & copy img-file to /assets
-        show_under_construction_message(self.asset_dir)
+        # show_under_construction_message(self.asset_dir)
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Image Files (*.png *.jpg *.bmp)",
+                                                   options=options)
+        if file_path:
+            btn_img1.setText(file_path[file_path.rindex("/") + 1:])
+            pixmap = QPixmap(file_path)
+            btn_img1.setIcon(QIcon(pixmap.scaledToWidth(128)))
+            shutil.copy(f"{self.asset_dir}/expt/{self.activity.img1}", f"{self.asset_dir}/expt/{self.activity.img1}.old")
+            shutil.copy(file_path, f"{self.asset_dir}/expt/{self.activity.img1}")
 
     def add_image2(self, btn_img2):
         # TODO Show file chooser & copy img-file to /assets
-        show_under_construction_message(self.asset_dir)
+        # show_under_construction_message(self.asset_dir)
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select Image", "", "Image Files (*.png *.jpg *.bmp)",
+                                                   options=options)
+        if file_path:
+            btn_img2.setText(file_path[file_path.rindex("/") + 1:])
+            pixmap = QPixmap(file_path)
+            btn_img2.setIcon(QIcon(pixmap.scaledToWidth(128)))
+            shutil.copy(f"{self.asset_dir}/expt/{self.activity.img2}", f"{self.asset_dir}/expt/{self.activity.img2}.old")
+            shutil.copy(file_path, f"{self.asset_dir}/expt/{self.activity.img2}")
