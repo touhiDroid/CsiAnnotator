@@ -35,6 +35,7 @@ class SessionWindow(QMainWindow):
     def __init__(self, experiment, session_name, asset_dir):
         super().__init__()
         self.setWindowTitle(experiment.name)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.experiment = experiment
         self.asset_dir = asset_dir
 
@@ -109,6 +110,7 @@ class SessionWindow(QMainWindow):
         widget.setStyleSheet("background-color: white; color: black;")
         widget.setLayout(self.qvl_parent)
         self.setCentralWidget(widget)
+        self.showFullScreen()
 
     def close_clicked(self):
         # Post 'none' annotation before closing
