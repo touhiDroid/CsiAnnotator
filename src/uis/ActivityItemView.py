@@ -40,12 +40,12 @@ class ActivityItemView(QWidget):
         qhb_title.addWidget(btn_delete)
         qvb.addLayout(qhb_title)
 
-        # region : Duration Per Activity
+        # region : Activity Duration
         qhb_dur = QHBoxLayout()
         qlb_dur_title = QLabel("# Duration: ")
         qlb_dur_title.setFont(QFont('Courier', 14, 400, False))
         qlb_dur_title.setStyleSheet("background-color: transparent;")
-        qlb_dur_title.setFixedSize(120, 32)
+        qlb_dur_title.setFixedSize(130, 32)
         qhb_dur.addWidget(qlb_dur_title)
 
         qlb_dur = QLabel(str(activity.duration_secs))
@@ -68,9 +68,36 @@ class ActivityItemView(QWidget):
         btn_add_dur_secs.setStyleSheet(icon_only_button_style())
         qhb_dur.addWidget(btn_add_dur_secs)
 
+        qlb_dur_rand_title = QLabel("\u00b1Randomness: ")
+        qlb_dur_rand_title.setFont(QFont('Courier', 14, 400, False))
+        qlb_dur_rand_title.setStyleSheet("background-color: transparent;")
+        qlb_dur_rand_title.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        qlb_dur_rand_title.setFixedSize(200, 32)
+        qhb_dur.addWidget(qlb_dur_rand_title)
+
+        qlb_dur_rand = QLabel(str(activity.duration_randomness))
+        qlb_dur_rand.setFont(QFont('Courier', 14, 400, False))
+        qlb_dur_rand.setStyleSheet("background-color: transparent; color: black;")
+        qlb_dur_rand.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        qlb_dur_rand.setFixedSize(32, 32)
+
+        btn_subtract_dur_rand = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/subtract.png"))
+        btn_subtract_dur_rand.setFixedSize(32, 32)
+        btn_subtract_dur_rand.clicked.connect(lambda: self.dur_rand_subtract_clicked(qlb_dur_rand))
+        btn_subtract_dur_rand.setStyleSheet(icon_only_button_style())
+        qhb_dur.addWidget(btn_subtract_dur_rand)
+
+        qhb_dur.addWidget(qlb_dur_rand)
+
+        btn_add_dur_rand = QPushButton(icon=QIcon(f"{self.asset_dir}/icons/add.png"))
+        btn_add_dur_rand.setFixedSize(32, 32)
+        btn_add_dur_rand.clicked.connect(lambda: self.dur_rand_add_clicked(qlb_dur_rand))
+        btn_add_dur_rand.setStyleSheet(icon_only_button_style())
+        qhb_dur.addWidget(btn_add_dur_rand)
+
         qhb_dur.setAlignment(Qt.AlignmentFlag.AlignLeft)
         qvb.addLayout(qhb_dur)
-        # endregion : Reps. Per Activity
+        # endregion : Activity Duration
 
         qhb_img = QHBoxLayout()
         img1_text = self.activity.img1 if len(self.activity.img1) > 0 else 'Primary Image'
@@ -108,6 +135,19 @@ class ActivityItemView(QWidget):
     def dur_add_clicked(self, qlb_dur):
         self.activity.duration_secs += 1
         qlb_dur.setText(str(self.activity.duration_secs))
+        self.update_activity_in_expt(self.activity)
+
+    def dur_rand_subtract_clicked(self, qlb):
+        if self.activity.duration_randomness <= 0:
+            return
+        self.activity.duration_randomness -= 1
+        qlb.setText(str(self.activity.duration_randomness))
+        # self.experiment.activities[a.id == activity.id for a in self.experiment.activities].duration_secs = activity.duration_secs
+        self.update_activity_in_expt(self.activity)
+
+    def dur_rand_add_clicked(self, qlb):
+        self.activity.duration_randomness += 1
+        qlb.setText(str(self.activity.duration_randomness))
         self.update_activity_in_expt(self.activity)
 
     def add_image1(self, btn_img1):

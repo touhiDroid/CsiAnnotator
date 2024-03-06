@@ -2,11 +2,12 @@ import json
 
 
 class Activity(object):
-    def __init__(self, _id, name, duration_secs, img1, img2):
+    def __init__(self, _id, name, duration_secs, duration_randomness, img1, img2):
         super().__init__()
         self.id = _id
         self.name = name
         self.duration_secs = duration_secs
+        self.duration_randomness = duration_randomness
         self.img1 = img1
         self.img2 = img2
 
@@ -15,6 +16,7 @@ class Activity(object):
             'id': self.id,
             'name': self.name,
             'duration_secs': self.duration_secs,
+            'duration_randomness': self.duration_randomness,
             'img1': self.img1,
             'img2': self.img2
         })
@@ -25,9 +27,10 @@ class Activity(object):
         _id = j['id']
         name = j['name']
         dur = j['duration_secs']
+        dur_rand = j['duration_randomness']
         img1 = j['img1']
         img2 = j['img2']
-        return Activity(_id, name, dur, img1, img2)
+        return Activity(_id, name, dur, dur_rand, img1, img2)
 
     @staticmethod
     def list_from_json(json_arr):
@@ -37,9 +40,10 @@ class Activity(object):
             _id = j['id']
             name = j['name']
             dur = j['duration_secs']
+            dur_rand = j['duration_randomness']
             img1 = j['img1']
             img2 = j['img2']
-            activities.append(Activity(_id, name, dur, img1, img2))
+            activities.append(Activity(_id, name, dur, dur_rand, img1, img2))
         return activities
 
     @staticmethod

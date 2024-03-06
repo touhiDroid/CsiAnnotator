@@ -1,3 +1,4 @@
+import random
 from enum import Enum
 from math import ceil
 from sys import stderr
@@ -12,7 +13,8 @@ from src.helpers import icon_only_button_style, progressbar_style, api
 from src.models.Activity import Activity
 
 STR_NONE = 'none'
-TR_ACTIVITY = Activity(100, "Keep steady please! Waiting to start ...", 20, "", "")
+TR_ACTIVITY = Activity(100, "Keep steady please! Waiting to start ...",
+                       20, 0, "", "")
 
 
 def get_img(path):
@@ -51,6 +53,7 @@ class SessionWindow(QMainWindow):
         self.state_before_paused = self.curr_state
         self.curr_rep_no = 1
         self.curr_activity = TR_ACTIVITY
+        self.curr_activity_dur_secs = self.get_curr_activity_duration()
         self.last_activity_id = -1
         self.countdown = self.experiment.transition_secs  # `self.countdown` should be decremented by 0.5s, as the timer expires every 500ms
 
@@ -101,7 +104,7 @@ class SessionWindow(QMainWindow):
         self.qlb_wait_time = QLabel(f"{self.countdown}")
         self.qlb_wait_time.setFont(QFont('Courier', 84, 800, False))
         self.qlb_wait_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.qlb_wait_time.setFixedSize(self.qlb_img.size())
+        self.qlb_wait_time.setMinimumSize(self.qlb_img.size())
         self.qlb_wait_time.setStyleSheet('padding: 16px;')
         self.qvl_parent.addWidget(self.qlb_wait_time, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -129,6 +132,10 @@ class SessionWindow(QMainWindow):
         widget.setStyleSheet("background-color: white; color: black;")
         widget.setLayout(self.qvl_parent)
         self.setCentralWidget(widget)
+
+    def get_curr_activity_duration(self):
+        return self.curr_activity.duration_secs + random.randint(
+            -self.curr_activity.duration_randomness, self.curr_activity.duration_randomness)
 
     def close_clicked(self):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint & ~Qt.FramelessWindowHint)
@@ -168,7 +175,7 @@ class SessionWindow(QMainWindow):
                 # Play stop sound
                 self.stop_mp_sound.play()
             self.handle_activity_session()
-            self.qpb_action_time.setValue(int(self.countdown * 100 / self.curr_activity.duration_secs))
+            self.qpb_action_time.setValue(int(self.countdown * 100 / self.curr_activity_dur_secs))
 
         elif self.curr_state == SessionStates.PAUSED:
             self.countdown += 0.5
@@ -184,7 +191,8 @@ class SessionWindow(QMainWindow):
         is_img1 = self.curr_state == SessionStates.IMG_1
         if self.curr_activity.id == TR_ACTIVITY.id:
             self.curr_activity = self.pick_next_activity()
-            self.countdown = self.curr_activity.duration_secs
+            self.curr_activity_dur_secs = self.get_curr_activity_duration()
+            self.countdown = self.curr_activity_dur_secs
             api.post_next_action_label(self.curr_activity.name if self.curr_activity.id != TR_ACTIVITY.id else STR_NONE)
         if not self.qlb_img.isVisible():
             self.qlb_img.setVisible(True)
@@ -201,6 +209,7 @@ class SessionWindow(QMainWindow):
             self.countdown = self.experiment.transition_secs
             self.last_activity_id = self.curr_activity.id
             self.curr_activity = TR_ACTIVITY
+            self.curr_activity_dur_secs = self.get_curr_activity_duration()
             api.post_next_action_label(self.curr_activity.name if self.curr_activity.id != TR_ACTIVITY.id else STR_NONE)
 
     def start_sound_ended(self):
