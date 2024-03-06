@@ -10,6 +10,18 @@ from src.uis.ActivityItemView import ActivityItemView
 from src.uis.SessionWindow import SessionWindow
 
 
+class NonSelectableListWidget(QListWidget):
+    def __init__(self):
+        super().__init__()
+
+    def mousePressEvent(self, event):
+        # Ignore mouse press events
+        event.ignore()
+
+    def mouseReleaseEvent(self, event):
+        # Ignore mouse release events
+        event.ignore()
+
 # noinspection PyMethodMayBeStatic
 class ExptDetailsView(QWidget):
     def __init__(self, experiment, asset_dir):
@@ -115,7 +127,8 @@ class ExptDetailsView(QWidget):
         qlb_activities_title.setFixedSize(300, 48)
         qvl_parent.addWidget(qlb_activities_title)
 
-        self.qlist_activities = QListWidget()
+        self.qlist_activities = NonSelectableListWidget()
+        self.qlist_activities.setSelectionMode(QListWidget.NoSelection)
         self.activity_colors = ["#E5E5F5", "#FEEAEA"]
         idx = 1
         for act in self.experiment.activities:
@@ -133,6 +146,14 @@ class ExptDetailsView(QWidget):
         # qvb_activities.setStretchFactor(qlist_activities, 1)
         self.qlist_activities.setFrameShape(QListWidget.Shape.Box)
         self.qlist_activities.setFrameShadow(QListWidget.Shadow.Plain)
+        self.qlist_activities.setStyleSheet("""
+            QScrollBar:vertical {
+                width: 32px;
+            }
+            QScrollBar::handle:vertical {
+                min-height: 50px;
+            }
+        """)
         qvl_parent.addWidget(self.qlist_activities)
         qvl_parent.setStretchFactor(self.qlist_activities, 1)
         # endregion : Activity Listing
