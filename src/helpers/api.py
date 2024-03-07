@@ -29,6 +29,7 @@ def reset_for_new_session(participant_name):
     params = (('participant', participant_name),)
     try:
         resp = requests.post(f'{get_server_address()}/reset', params=params)
+        print_response(resp)
     except (ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError, Exception) as err:
         resp = None
         stderr.write(str(err) + "\n")
@@ -97,9 +98,12 @@ def get_esp_device_details(device_name):
     return resp
 
 
-def print_response(resp, class_name):
+def print_response(resp, class_name=None):
     if resp is not None and resp.status_code == 200:
-        print("Posted NEW action `{:s}` to perform now ...".format(class_name))
+        if class_name is not None:
+            print("Posted NEW action `{:s}` to perform now ...".format(class_name))
+        else:
+            print("API Response: ", resp.text)
     else:
         stderr.write("Bad Service!\nResponse Code: "
                      + str(resp.status_code if resp is not None else "NULL")

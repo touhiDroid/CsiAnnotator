@@ -13,7 +13,7 @@ from src.helpers import icon_only_button_style, progressbar_style, api
 from src.models.Activity import Activity
 
 STR_NONE = 'none'
-TR_ACTIVITY = Activity(100, "Keep steady please! Waiting to start ...",
+TR_ACTIVITY = Activity(100, "Be steady please ...",
                        20, 0, "", "")
 
 
@@ -33,6 +33,7 @@ class SessionStates(Enum):
     IMG_2 = 2
     TRANSITION = 3
     PAUSED = 4
+    ENDED = 5
 
 
 class SessionWindow(QMainWindow):
@@ -92,7 +93,7 @@ class SessionWindow(QMainWindow):
         self.qlb_session.setStyleSheet('padding: 8px; color:red')
         self.qvl_parent.addWidget(self.qlb_session, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.qlb_rep_no = QLabel(f"Repetition: {self.curr_rep_no}/{self.experiment.reps_per_activity}")
+        self.qlb_rep_no = QLabel(self.get_rep_count_text())
         self.qlb_rep_no.setFont(QFont('Courier', 18, 600, False))
         self.qlb_rep_no.setStyleSheet('padding: 8px;')
         self.qvl_parent.addWidget(self.qlb_rep_no, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -137,12 +138,22 @@ class SessionWindow(QMainWindow):
         return self.curr_activity.duration_secs + random.randint(
             -self.curr_activity.duration_randomness, self.curr_activity.duration_randomness)
 
+    def get_rep_count_text(self):
+        c = 0
+        for i, a in enumerate(self.experiment.activities):
+            if a.id == self.curr_activity.id:
+                c = i + 1
+                break
+        _x = min(self.curr_rep_no, self.experiment.reps_per_activity)
+        return f"Repetition: {_x}/{self.experiment.reps_per_activity}, Activity: {c}/{len(self.experiment.activities)}"
+
     def close_clicked(self):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint & ~Qt.FramelessWindowHint)
         self.showNormal()
         self.setGeometry(100, 100, 600, 400)
         # Post 'none' annotation before closing
         api.post_next_action_label(STR_NONE)
+        self.stop_all_sounds()
         # self.close() <-- Instead of directly calling, we're giving the OS a little bit of delay to dispose the resources first
         self.close()
 
@@ -179,12 +190,21 @@ class SessionWindow(QMainWindow):
 
         elif self.curr_state == SessionStates.PAUSED:
             self.countdown += 0.5
+
+        elif self.curr_state == SessionStates.ENDED:
+            self.stop_all_sounds()
+            if self.countdown <= 0:
+                self.close_clicked()
         else:
             stderr.write(f"Undefined SessionState: {self.curr_state}")
         if self.curr_rep_no > self.experiment.reps_per_activity:
             self.qlb_img.setVisible(False)
             self.qlb_wait_time.setVisible(True)
             self.qlb_wait_time.setText("Completed!")
+            self.curr_state = SessionStates.ENDED
+            self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
+            self.curr_rep_no = self.experiment.reps_per_activity
+            self.countdown = 10
         self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}")
 
     def handle_activity_session(self):
@@ -211,6 +231,7 @@ class SessionWindow(QMainWindow):
             self.curr_activity = TR_ACTIVITY
             self.curr_activity_dur_secs = self.get_curr_activity_duration()
             api.post_next_action_label(self.curr_activity.name if self.curr_activity.id != TR_ACTIVITY.id else STR_NONE)
+            # Check completion? <-- For now, let's have a static session at the end of the session
 
     def start_sound_ended(self):
         if self.start_mp_sound.state() == QMediaPlayer.EndOfMedia:
@@ -228,9 +249,15 @@ class SessionWindow(QMainWindow):
                 idx = (i + 1) % len(self.experiment.activities)
                 if idx < i:
                     self.curr_rep_no += 1
-                    self.qlb_rep_no.setText(f"Repetition: {self.curr_rep_no}/{self.experiment.reps_per_activity}")
+                    self.qlb_rep_no.setText(self.get_rep_count_text())
                 return self.experiment.activities[idx]
         return TR_ACTIVITY
+
+    def stop_all_sounds(self):
+        if self.start_mp_sound.state() == QMediaPlayer.PlayingState:
+            self.start_mp_sound.stop()
+        if self.stop_mp_sound.state() == QMediaPlayer.PlayingState:
+            self.stop_mp_sound.stop()
 
     # noinspection PyMethodMayBeStatic
     def media_error(self, error):
@@ -240,6 +267,7 @@ class SessionWindow(QMainWindow):
         try:
             self.imgUpdateTimer.stop()
             self.imgUpdateTimer.deleteLater()
+            self.stop_all_sounds()
         except Exception as e:
             print("QTimer deletion error on window close:", e)
         event.accept()
