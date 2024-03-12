@@ -21,6 +21,7 @@ class Color(QWidget):
 
 
 class HomeWindow(QMainWindow):
+    # noinspection PyUnresolvedReferences
     def __init__(self, data_dir, asset_dir):
         super().__init__()
         self.data_dir = data_dir
@@ -82,16 +83,21 @@ class HomeWindow(QMainWindow):
         btn_add_expt.setIconSize(QSize(28, 28))
         btn_add_expt.setStyleSheet(big_action_button_style())
         btn_add_expt.clicked.connect(self.add_expt_clicked)
-        parent_lt.addWidget(btn_add_expt, 13, 0, 1, 1)
+        # parent_lt.addWidget(btn_add_expt, 13, 0, 1, 1)
 
         sep_color = Color("#0C0D0F")
         sep_color.setFixedWidth(1)
-        parent_lt.addWidget(sep_color, 0, 1, 14, 1)
+        parent_lt.addWidget(sep_color, 0, 1, 13, 1)
 
         self.qvl_expt_details = QVBoxLayout()
         self.expt_details_view = ExptDetailsView(self.experiments[expt_list.currentRow()], self.asset_dir)
         self.qvl_expt_details.addWidget(self.expt_details_view)
-        parent_lt.addLayout(self.qvl_expt_details, 0, 2, 14, 40)
+        parent_lt.addLayout(self.qvl_expt_details, 0, 2, 13, 40)
+
+        self.server_query_timer = QTimer(self)
+        self.server_query_timer.setInterval(1000)  # 1 seconds
+        self.server_query_timer.timeout.connect(self.set_server_info)
+        self.server_query_timer.start()
 
         widget = QWidget()
         widget.setStyleSheet("background-color: white;")

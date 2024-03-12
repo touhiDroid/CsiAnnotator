@@ -162,7 +162,7 @@ class ExptDetailsView(QWidget):
         btn_add_activity.setFixedHeight(54)
         btn_add_activity.clicked.connect(self.add_activity)
         btn_add_activity.setStyleSheet(big_action_button_style())
-        qvl_parent.addWidget(btn_add_activity)
+        # qvl_parent.addWidget(btn_add_activity)
         qvl_parent.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.setLayout(qvl_parent)
