@@ -1,13 +1,22 @@
 import json
+from enum import Enum
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, QTimer
 from PyQt5.QtGui import QFont, QIcon, QColor, QPalette
 from PyQt5.QtWidgets import QMainWindow, QGridLayout, QWidget, QListWidget, QLabel, QAbstractItemView, \
     QPushButton, QVBoxLayout, QInputDialog, QScrollArea
 
-from src.helpers import big_action_button_style, show_under_construction_message, api
+from src.helpers import big_action_button_style, show_under_construction_message, api, format_bytes
+from src.models.EspDevice import EspDevice
 from src.models.Experiment import Experiment
 from src.uis.ExptDetailsView import ExptDetailsView
+
+
+class ServerStatus(Enum):
+    NONE = 0
+    OK = 1
+    GOING = 2
+    GONE = 3
 
 
 class Color(QWidget):
@@ -29,22 +38,25 @@ class HomeWindow(QMainWindow):
         self.setWindowTitle("CSI Annotator")
         self.setWindowIcon(QIcon(f"{asset_dir}/icons/app_icon.png"))
         self.asset_dir = asset_dir
+        self.server_status = ServerStatus.NONE
+        self.missed_server_calls = -100
+        self.binary_toggler = 0
         # setting geometry
         # self.setGeometry(100, 100, 600, 400)
 
         parent_lt = QGridLayout()
 
-        qlb_server_title = QLabel("\u25BC Server Info")
-        qlb_server_title.setFont(QFont('Courier', 24, 800, False))
-        qlb_server_title.setStyleSheet("color: black;")  # background-color: orange;
-        parent_lt.addWidget(qlb_server_title, 0, 0, 1, 1)
+        self.qlb_server_title = QLabel("\u25BC Server Info")
+        self.qlb_server_title.setFont(QFont('Courier', 24, 800, False))
+        server_status_color = self.get_server_info_text_color()
+        self.qlb_server_title.setStyleSheet(f"color: {server_status_color};")
+        parent_lt.addWidget(self.qlb_server_title, 0, 0, 1, 1)
 
         scroll_area = QScrollArea()
-        self.qlb_server_info = QLabel("Hostname: raspi.local\nData Dir.: ../1709398572.130102\nDevices:" +
-                                      "\n1. ttyUSB0: Ch-6, 999MB, 100Hz" +
-                                      "\n2. ttyUSB1: Ch-11, 999MB, 100Hz\n")  # TODO query server & device info
+        self.qlb_server_info = QLabel("\n\n\n<< NO SERVER INFO >>\n\n\n\n\n\n\n")
+        self.qlb_server_info.setFixedWidth(280)
         self.qlb_server_info.setFont(QFont('Courier', 13, 800, False))
-        self.qlb_server_info.setStyleSheet("color: black;")  # background-color: orange;
+        self.qlb_server_info.setStyleSheet(f"color: {server_status_color};")
         self.qlb_server_info.setWordWrap(True)
         scroll_area.setWidget(self.qlb_server_info)
         scroll_area.setMaximumWidth(300)
@@ -103,6 +115,56 @@ class HomeWindow(QMainWindow):
         widget.setStyleSheet("background-color: white;")
         widget.setLayout(parent_lt)
         self.setCentralWidget(widget)
+
+    def get_server_info(self):
+        host = api.get_server_host()
+        server_stats = api.get_server_stats()
+        if server_stats is None:
+            if self.missed_server_calls < 0:
+                self.missed_server_calls = 4  # Giving more penalty to initial failure, so that no momentary green color is shown.
+            else:
+                self.missed_server_calls += 1
+            return None
+        self.missed_server_calls = 0
+        data_dir, used_bytes, total_bytes, device_names = server_stats
+        devices = []
+        for d in device_names:
+            devices.append(api.get_esp_device_details(d))
+        return (f"Hostname: {host}\n" +
+                f"Storage: {format_bytes(used_bytes)} / {format_bytes(total_bytes)}\n" +
+                f"Data Dir.: ..{data_dir[data_dir.rindex('/'):]}\n" +
+                f"Devices:\n{EspDevice.get_list_to_str(devices)}")
+
+    def get_server_info_text_color(self):
+        if self.missed_server_calls > 5:
+            self.server_status = ServerStatus.GONE
+        elif self.missed_server_calls > 3:
+            self.server_status = ServerStatus.GOING
+        elif self.missed_server_calls > 0:
+            self.server_status = ServerStatus.OK
+        else:
+            self.server_status = ServerStatus.NONE
+        return "green" if self.server_status == ServerStatus.OK else (
+            "orange" if self.server_status == ServerStatus.GOING else (
+                "red" if self.server_status == ServerStatus.GONE else "black"))
+
+    def set_server_info(self):
+        self.binary_toggler = (self.binary_toggler + 1) % 2
+        info = self.get_server_info()
+        if info is not None:
+            self.qlb_server_info.setText(info)
+        self.qlb_server_info.setFont(QFont('Courier', 13, 800 if self.binary_toggler == 0 else 400, False))
+        color = self.get_server_info_text_color()
+        self.qlb_server_title.setStyleSheet(f"color: {color};")  # background-color: orange;
+        self.qlb_server_info.setStyleSheet(f"color: {color};")  # background-color: orange;
+
+    def closeEvent(self, event):
+        try:
+            self.server_query_timer.stop()
+            self.server_query_timer.deleteLater()
+        except Exception as e:
+            print("QTimer deletion error on window close:", e)
+        event.accept()
 
     # def expt_changed(self, item):
     #     print(item.text())
