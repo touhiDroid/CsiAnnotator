@@ -59,7 +59,8 @@ class SessionWindow(QMainWindow):
         self.countdown = self.experiment.transition_secs  # `self.countdown` should be decremented by 0.5s, as the timer expires every 500ms
 
         self.start_mp_sound = QMediaPlayer()
-        self.start_mp_sound.setMedia(QMediaContent(QUrl.fromLocalFile(f"{self.asset_dir}/sounds/start_4secs.mp3")))
+        self.start_mp_sound.setMedia(
+            QMediaContent(QUrl.fromLocalFile(f"{self.asset_dir}/sounds/stop_4secs.mp3")))  # start_4secs
         self.start_mp_sound.stateChanged.connect(lambda: self.start_sound_ended)
         self.start_mp_sound.error.connect(self.media_error)
         self.stop_mp_sound = QMediaPlayer()
