@@ -145,7 +145,7 @@ class SessionWindow(QMainWindow):
                 c = i + 1
                 break
         _x = min(self.curr_rep_no, self.experiment.reps_per_activity)
-        return f"Repetition: {_x}/{self.experiment.reps_per_activity}, Activity: {c}/{len(self.experiment.activities)}"
+        return f"Repetition: {_x}/{self.experiment.reps_per_activity}, Activity: {c if c > 0 else '--'}/{len(self.experiment.activities)}"
 
     def close_clicked(self):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint & ~Qt.FramelessWindowHint)
@@ -204,7 +204,8 @@ class SessionWindow(QMainWindow):
             self.curr_state = SessionStates.ENDED
             self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
             self.curr_rep_no = self.experiment.reps_per_activity
-            self.countdown = 10
+            self.countdown = 5
+        self.qlb_rep_no.setText(self.get_rep_count_text())
         self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}")
 
     def handle_activity_session(self):
@@ -249,7 +250,6 @@ class SessionWindow(QMainWindow):
                 idx = (i + 1) % len(self.experiment.activities)
                 if idx < i:
                     self.curr_rep_no += 1
-                    self.qlb_rep_no.setText(self.get_rep_count_text())
                 return self.experiment.activities[idx]
         return TR_ACTIVITY
 
