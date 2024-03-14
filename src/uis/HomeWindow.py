@@ -128,19 +128,21 @@ class HomeWindow(QMainWindow):
         self.missed_server_calls = 0
         data_dir, used_bytes, total_bytes, device_names = server_stats
         devices = []
-        for d in device_names:
-            devices.append(api.get_esp_device_details(d))
-        return (f"Hostname: {host}\n" +
-                f"Storage: {format_bytes(used_bytes)} / {format_bytes(total_bytes)}\n" +
-                f"Data Dir.: ..{data_dir[data_dir.rindex('/'):]}\n" +
-                f"Devices:\n{EspDevice.get_list_to_str(devices)}")
+        for dn in device_names:
+            device = api.get_esp_device_details(dn)
+            if device is not None and device.file_size > 0 and device.tx_rate > 0:
+                devices.append(device)
+        return (f"\u21F0 Hostname: {host}\n" +
+                f"\u21F0 Storage: {format_bytes(used_bytes)} / {format_bytes(total_bytes)}\n" +
+                f"\u21F0 Data Dir.: ..{data_dir[data_dir[:-2].rindex('/'):len(data_dir) - 1]}\n" +
+                f"\n\u21F0 Devices with CSI:\n{EspDevice.get_list_to_str(devices)}")
 
     def get_server_info_text_color(self):
         if self.missed_server_calls > 5:
             self.server_status = ServerStatus.GONE
         elif self.missed_server_calls > 3:
             self.server_status = ServerStatus.GOING
-        elif self.missed_server_calls > 0:
+        elif self.missed_server_calls >= 0:
             self.server_status = ServerStatus.OK
         else:
             self.server_status = ServerStatus.NONE
@@ -153,7 +155,7 @@ class HomeWindow(QMainWindow):
         info = self.get_server_info()
         if info is not None:
             self.qlb_server_info.setText(info)
-        self.qlb_server_info.setFont(QFont('Courier', 13, 800 if self.binary_toggler == 0 else 400, False))
+        # self.qlb_server_info.setFont(QFont('Courier', 13, 800 if self.binary_toggler == 0 else 400, False))
         color = self.get_server_info_text_color()
         self.qlb_server_title.setStyleSheet(f"color: {color};")  # background-color: orange;
         self.qlb_server_info.setStyleSheet(f"color: {color};")  # background-color: orange;
