@@ -121,6 +121,7 @@ class SessionWindow(QMainWindow):
 
         self.qlb_activity_name = QLabel(f"Current Activity: {self.curr_activity.name}")
         self.qlb_activity_name.setFont(QFont('Courier', 16, 600, False))
+        self.qlb_activity_name.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.qlb_activity_name.setStyleSheet('padding: 8px;')
         self.qvl_parent.addWidget(self.qlb_activity_name, alignment=Qt.AlignmentFlag.AlignCenter)
         # self.qvl_parent.addStretch()
@@ -206,11 +207,12 @@ class SessionWindow(QMainWindow):
             self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
             self.curr_rep_no = self.experiment.reps_per_activity
             self.countdown = 5
-        self.qlb_rep_no.setText(self.get_rep_count_text())
-        self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}")
+        next_act_str = f"\nNext: {self.pick_next_activity().name}" if self.curr_activity.id == TR_ACTIVITY.id else ""
+        self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}{next_act_str}")
 
     def handle_activity_session(self):
         is_img1 = self.curr_state == SessionStates.IMG_1
+        self.qlb_rep_no.setText(self.get_rep_count_text())
         if self.curr_activity.id == TR_ACTIVITY.id:
             self.curr_activity = self.pick_next_activity()
             self.curr_activity_dur_secs = self.get_curr_activity_duration()
@@ -244,12 +246,12 @@ class SessionWindow(QMainWindow):
             self.stop_mp_sound.stop()
 
     def pick_next_activity(self):
-        if self.last_activity_id == -1:
+        if self.last_activity_id == -1:  # initial round
             return self.experiment.activities[0]
         for i, a in enumerate(self.experiment.activities):
             if a.id == self.last_activity_id:
                 idx = (i + 1) % len(self.experiment.activities)
-                if idx < i:
+                if idx < i:  # or, idx == 0 ?
                     self.curr_rep_no += 1
                 return self.experiment.activities[idx]
         return TR_ACTIVITY
