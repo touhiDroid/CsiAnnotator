@@ -182,43 +182,48 @@ class SessionWindow(QMainWindow):
         # The rest of the effects would be handled on the next timer event (after 0.5s)
 
     def handle_state_500ms(self):
-        self.countdown -= 0.5
+        try:
+            self.countdown -= 0.5
 
-        if self.curr_state == SessionStates.STARTING or self.curr_state == SessionStates.TRANSITION:
-            self.qlb_wait_time.setText(f"{int(ceil(self.countdown))}")
-            if self.countdown == 3.5:
-                # Play start sound
-                self.start_mp_sound.play()
-            if self.countdown <= 0:
-                self.curr_state = SessionStates.IMG_1
-            self.qpb_action_time.setValue(int(self.countdown * 100 / self.experiment.transition_secs))
+            if self.curr_state == SessionStates.STARTING or self.curr_state == SessionStates.TRANSITION:
+                self.qlb_wait_time.setText(f"{int(ceil(self.countdown))}")
+                if self.countdown == 3.5:
+                    # Play start sound
+                    self.start_mp_sound.play()
+                if self.countdown <= 0:
+                    self.curr_state = SessionStates.IMG_1
+                self.qpb_action_time.setValue(int(self.countdown * 100 / self.experiment.transition_secs))
 
-        elif self.curr_state == SessionStates.IMG_1 or self.curr_state == SessionStates.IMG_2:
-            if self.countdown == 3.5:
-                # Play stop sound
-                self.stop_mp_sound.play()
-            self.handle_activity_session()
-            self.qpb_action_time.setValue(int(self.countdown * 100 / self.curr_activity_dur_secs))
+            elif self.curr_state == SessionStates.IMG_1 or self.curr_state == SessionStates.IMG_2:
+                if self.countdown == 3.5:
+                    # Play stop sound
+                    self.stop_mp_sound.play()
+                self.handle_activity_session()
+                self.qpb_action_time.setValue(int(self.countdown * 100 / self.curr_activity_dur_secs))
 
-        elif self.curr_state == SessionStates.PAUSED:
-            self.countdown += 0.5
+            elif self.curr_state == SessionStates.PAUSED:
+                self.countdown += 0.5
 
-        elif self.curr_state == SessionStates.ENDED:
-            self.stop_all_sounds()
-            if self.countdown <= 0:
-                self.close_clicked()
-        else:
-            stderr.write(f"Undefined SessionState: {self.curr_state}")
-        if self.curr_rep_no > self.experiment.reps_per_activity:
-            self.qlb_img.setVisible(False)
-            self.qlb_wait_time.setVisible(True)
-            self.qlb_wait_time.setText("Completed!")
-            self.curr_state = SessionStates.ENDED
-            self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
-            self.curr_rep_no = self.experiment.reps_per_activity
-            self.countdown = 5
-        next_act_str = f"\nNext: {self.pick_next_activity().name}" if self.curr_activity.id == TR_ACTIVITY.id else ""
-        self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}{next_act_str}")
+            elif self.curr_state == SessionStates.ENDED:
+                self.stop_all_sounds()
+                if self.countdown <= 0:
+                    self.close_clicked()
+            else:
+                stderr.write(f"Undefined SessionState: {self.curr_state}")
+            if self.curr_rep_no > self.experiment.reps_per_activity:
+                self.qlb_img.setVisible(False)
+                self.qlb_wait_time.setVisible(True)
+                self.qlb_wait_time.setText("Completed!")
+                self.curr_state = SessionStates.ENDED
+                self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
+                self.curr_rep_no = self.experiment.reps_per_activity
+                self.countdown = 5
+            next_act_str = f"\nNext: {self.pick_next_activity().name}" if self.curr_activity.id == TR_ACTIVITY.id else ""
+            self.is_action_running = self.curr_activity.id != TR_ACTIVITY.id
+            self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}{next_act_str}")
+            self.set_server_info()
+        except Exception as e:
+            print("Exception inside handle_state_500ms(): ", e)
 
     def handle_activity_session(self):
         is_img1 = self.curr_state == SessionStates.IMG_1
@@ -247,23 +252,19 @@ class SessionWindow(QMainWindow):
             api.post_next_action_label(self.curr_activity.name if self.curr_activity.id != TR_ACTIVITY.id else STR_NONE)
             # Check completion? <-- For now, let's have a static session at the end of the session
 
-    def start_sound_ended(self):
-        if self.start_mp_sound.state() == QMediaPlayer.EndOfMedia:
-            self.start_mp_sound.stop()
-
-    def stop_sound_ended(self):
-        if self.stop_mp_sound.state() == QMediaPlayer.EndOfMedia:
-            self.stop_mp_sound.stop()
-
-    def pick_next_activity(self):
-        if self.last_activity_id == -1:  # initial round
-            return self.experiment.activities[0]
-        for i, a in enumerate(self.experiment.activities):
-            if a.id == self.last_activity_id:
-                idx = (i + 1) % len(self.experiment.activities)
-                if idx < i:  # or, idx == 0 ?
-                    self.curr_rep_no += 1
-                return self.experiment.activities[idx]
+    def pick_next_activity(self) -> Activity:
+        try:
+            if self.last_activity_id == -1:  # initial round
+                return self.experiment.activities[0]
+            for i, a in enumerate(self.experiment.activities):
+                if a.id == self.last_activity_id:
+                    idx = (i + 1) % len(self.experiment.activities)
+                    if idx < i and self.is_action_running:  # or, idx == 0 ?
+                        self.curr_rep_no += 1
+                        self.is_action_running = False
+                    return self.experiment.activities[idx]
+        except Exception as ie:
+            print("Exception inside pick_next_activity(): ", ie)
         return TR_ACTIVITY
 
     def get_server_info(self):
