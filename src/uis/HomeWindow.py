@@ -7,16 +7,10 @@ from PyQt5.QtWidgets import QMainWindow, QGridLayout, QWidget, QListWidget, QLab
     QPushButton, QVBoxLayout, QInputDialog, QScrollArea
 
 from src.helpers import big_action_button_style, show_under_construction_message, api, format_bytes
+from src.helpers.app_cache import AppCache, ServerStatus
 from src.models.EspDevice import EspDevice
 from src.models.Experiment import Experiment
 from src.uis.ExptDetailsView import ExptDetailsView
-
-
-class ServerStatus(Enum):
-    NONE = 0
-    OK = 1
-    GOING = 2
-    GONE = 3
 
 
 class Color(QWidget):
@@ -33,13 +27,14 @@ class HomeWindow(QMainWindow):
     # noinspection PyUnresolvedReferences
     def __init__(self, data_dir, asset_dir):
         super().__init__()
+        self.app_cache = AppCache()
         self.data_dir = data_dir
         self.asset_dir = asset_dir
         self.setWindowTitle("CSI Annotator")
         self.setWindowIcon(QIcon(f"{asset_dir}/icons/app_icon.png"))
         self.asset_dir = asset_dir
-        self.server_status = ServerStatus.NONE
-        self.missed_server_calls = -100
+        self.app_cache.server_status = ServerStatus.NONE
+        self.app_cache.missed_server_calls = -100
         self.binary_toggler = 0
         # setting geometry
         # self.setGeometry(100, 100, 600, 400)
@@ -118,15 +113,15 @@ class HomeWindow(QMainWindow):
 
     def get_server_info(self):
         host = api.get_server_host()
-        server_stats = api.get_server_stats()
-        if server_stats is None:
-            if self.missed_server_calls < 0:
-                self.missed_server_calls = 4  # Giving more penalty to initial failure, so that no momentary green color is shown.
+        self.app_cache.server_stats = api.get_server_stats()
+        if self.app_cache.server_stats is None:
+            if self.app_cache.missed_server_calls < 0:
+                self.app_cache.missed_server_calls = 4  # Giving more penalty to initial failure, so that no momentary green color is shown.
             else:
-                self.missed_server_calls += 1
+                self.app_cache.missed_server_calls += 1
             return None
-        self.missed_server_calls = 0
-        data_dir, used_bytes, total_bytes, device_names = server_stats
+        self.app_cache.missed_server_calls = 0
+        data_dir, used_bytes, total_bytes, device_names = self.app_cache.server_stats
         devices = []
         for dn in device_names:
             device = api.get_esp_device_details(dn)
@@ -138,17 +133,17 @@ class HomeWindow(QMainWindow):
                 f"\n\u21F0 Devices with CSI:\n{EspDevice.get_list_to_str(devices)}")
 
     def get_server_info_text_color(self):
-        if self.missed_server_calls > 5:
-            self.server_status = ServerStatus.GONE
-        elif self.missed_server_calls > 3:
-            self.server_status = ServerStatus.GOING
-        elif self.missed_server_calls >= 0:
-            self.server_status = ServerStatus.OK
+        if self.app_cache.missed_server_calls > 5:
+            self.app_cache.server_status = ServerStatus.GONE
+        elif self.app_cache.missed_server_calls > 3:
+            self.app_cache.server_status = ServerStatus.GOING
+        elif self.app_cache.missed_server_calls >= 0:
+            self.app_cache.server_status = ServerStatus.OK
         else:
-            self.server_status = ServerStatus.NONE
-        return "green" if self.server_status == ServerStatus.OK else (
-            "orange" if self.server_status == ServerStatus.GOING else (
-                "red" if self.server_status == ServerStatus.GONE else "black"))
+            self.app_cache.server_status = ServerStatus.NONE
+        return "green" if self.app_cache.server_status == ServerStatus.OK else (
+            "orange" if self.app_cache.server_status == ServerStatus.GOING else (
+                "red" if self.app_cache.server_status == ServerStatus.GONE else "black"))
 
     def set_server_info(self):
         self.binary_toggler = (self.binary_toggler + 1) % 2
@@ -183,7 +178,7 @@ class HomeWindow(QMainWindow):
             self.expt_details_view.setStyleSheet("color: black;")
             self.qvl_expt_details.addWidget(self.expt_details_view)
         except AttributeError as ae:
-            print(ae)
+            print("Initialization Error, so it can be ignored: ", ae)
 
     def edit_server_clicked(self):
         new_host, ok = QInputDialog.getText(self, 'Server Host', 'Host-name:', text=api.get_server_host())
