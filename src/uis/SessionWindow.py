@@ -5,11 +5,13 @@ from sys import stderr
 
 from PyQt5.QtCore import Qt, QTimer, QSize, QUrl
 from PyQt5.QtGui import QPixmap, QFont, QIcon
+from src.models.EspDevice import EspDevice
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton, \
     QDesktopWidget
 
-from src.helpers import icon_only_button_style, progressbar_style, api
+from src.helpers import icon_only_button_style, progressbar_style, api, format_bytes
+from src.helpers.app_cache import AppCache, ServerStatus
 from src.models.Activity import Activity
 
 STR_NONE = 'none'
@@ -39,6 +41,7 @@ class SessionStates(Enum):
 class SessionWindow(QMainWindow):
     def __init__(self, experiment, session_name, asset_dir):
         super().__init__()
+        self.app_cache = AppCache()
         self.setWindowTitle(experiment.name)
         self.setWindowIcon(QIcon(f"{asset_dir}/icons/app_icon.png"))
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowFullScreen)
@@ -53,6 +56,7 @@ class SessionWindow(QMainWindow):
         self.curr_state = SessionStates.STARTING
         self.state_before_paused = self.curr_state
         self.curr_rep_no = 1
+        self.is_action_running = True
         self.curr_activity = TR_ACTIVITY
         self.curr_activity_dur_secs = self.get_curr_activity_duration()
         self.last_activity_id = -1
@@ -125,6 +129,12 @@ class SessionWindow(QMainWindow):
         self.qlb_activity_name.setStyleSheet('padding: 8px;')
         self.qvl_parent.addWidget(self.qlb_activity_name, alignment=Qt.AlignmentFlag.AlignCenter)
         # self.qvl_parent.addStretch()
+
+        self.qlb_server_stat = QLabel("<<Server Info>>")
+        self.qlb_server_stat.setFont(QFont('Courier', 16, 600, False))
+        self.qlb_server_stat.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.qlb_server_stat.setStyleSheet('padding: 8px;')
+        self.qvl_parent.addWidget(self.qlb_server_stat, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.imgUpdateTimer = QTimer(self)
         self.imgUpdateTimer.setInterval(500)  # .5 seconds
@@ -255,6 +265,56 @@ class SessionWindow(QMainWindow):
                     self.curr_rep_no += 1
                 return self.experiment.activities[idx]
         return TR_ACTIVITY
+
+    def get_server_info(self):
+        host = api.get_server_host()
+        # self.app_cache.server_stats = self.app_cache.server_stats
+        if self.app_cache.server_stats is None:
+            return None
+        data_dir, used_bytes, total_bytes, device_names = self.app_cache.server_stats
+        devices = []
+        for dn in device_names:
+            device = api.get_esp_device_details(dn)
+            if device is not None and device.file_size > 0 and device.tx_rate > 0:
+                devices.append(device)
+        try:
+            data_dir_name = data_dir[data_dir[:-2].rindex('/'):len(data_dir) - 1]
+        except Exception as e:
+            print(e)
+            data_dir_name = ''
+        return (f"\u21F0 Hostname: {host}, " +
+                f"\u21F0 Storage: {format_bytes(used_bytes)} / {format_bytes(total_bytes)}, " +
+                f"\u21F0 Data Dir.: ..{data_dir_name}\n" +
+                f"\n\u21F0 Devices with CSI:\n{EspDevice.get_list_to_str(devices)}")
+
+    def get_server_info_text_color(self):
+        if self.app_cache.missed_server_calls > 5:
+            self.app_cache.server_status = ServerStatus.GONE
+        elif self.app_cache.missed_server_calls > 3:
+            self.app_cache.server_status = ServerStatus.GOING
+        elif self.app_cache.missed_server_calls >= 0:
+            self.app_cache.server_status = ServerStatus.OK
+        else:
+            self.app_cache.server_status = ServerStatus.NONE
+        return "green" if self.app_cache.server_status == ServerStatus.OK else (
+            "orange" if self.app_cache.server_status == ServerStatus.GOING else (
+                "red" if self.app_cache.server_status == ServerStatus.GONE else "black"))
+
+    def set_server_info(self):
+        info = self.get_server_info()
+        if info is not None:
+            self.qlb_server_stat.setText(info)
+        # self.qlb_server_info.setFont(QFont('Courier', 13, 800 if self.binary_toggler == 0 else 400, False))
+        color = self.get_server_info_text_color()
+        self.qlb_server_stat.setStyleSheet(f"color: {color};")  # background-color: orange;
+
+    def start_sound_ended(self):
+        if self.start_mp_sound.state() == QMediaPlayer.EndOfMedia:
+            self.start_mp_sound.stop()
+
+    def stop_sound_ended(self):
+        if self.stop_mp_sound.state() == QMediaPlayer.EndOfMedia:
+            self.stop_mp_sound.stop()
 
     def stop_all_sounds(self):
         if self.start_mp_sound.state() == QMediaPlayer.PlayingState:
