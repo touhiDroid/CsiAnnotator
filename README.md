@@ -1,3 +1,5 @@
+This project provides a GUI instructing persons to perform any action and sends the annotation request to the (CSI-Pi)[https://github.com/MowiNG-Lab/CSI-Pi] server.
+
 ### Installation Steps:
 1. Clone the repository & install necessary libraries:
 ```shell
@@ -7,14 +9,19 @@ pip install -r requirements.txt
 ```
 
 2. Modify .env
-```cp example.env .env
-nano .env ## Then modify the `HOST` variable to point to the CSI-Pi server
+```shell
+cp example.env .env
+nano .env
 ```
+Then modify the `HOST` variable to point it to the CSI-Pi server.
+
 
 3. Include initial data
-```cp data/example-data.json data/data.json
-nano data/data.json ## Update this file to contain your initial set of experiments & actions
+```shell
+cp data/example-data.json data/data.json
+nano data/data.json
 ```
+Then update this file to contain your initial set of experiments & actions.
 
 4. Finally, put your image files inside `asset/expt` directory
 
