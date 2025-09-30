@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from sys import stderr
 
 import requests
@@ -31,13 +32,30 @@ def get_server_address():
 def reset_for_new_session(participant_name):
     params = (('participant', participant_name),)
     try:
-        resp = requests.post(f'{get_server_address()}/reset', params=params)
+        server_address = get_server_address()
+        print(f"Server address: {server_address}")  # Log the server address
+        resp = requests.post(f'{server_address}/reset', params=params)
         print_response(resp)
-    except (ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError, Exception) as err:
+    except (ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError) as err:
         resp = None
-        stderr.write(str(err) + "\n")
-        pass
+        stderr.write(f"Connection error: {str(err)}\n")
+    except Exception as err:
+        resp = None
+        stderr.write(f"Unexpected error: {str(err)}\n")
+        stderr.write(traceback.format_exc())
     return resp
+
+
+# def reset_for_new_session(participant_name):
+#     params = (('participant', participant_name),)
+#     try:
+#         resp = requests.post(f'{get_server_address()}/reset', params=params)
+#         print_response(resp)
+#     except (ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError, Exception) as err:
+#         resp = None
+#         stderr.write(str(err) + "\n")
+#         pass
+#     return resp
 
 
 def post_next_action_label(class_name):
@@ -83,6 +101,22 @@ def get_esp_device_details(device_name):
 
 
 def print_response(resp, class_name=None):
+    try:
+        if resp is not None and resp.status_code == 200:
+            if class_name is not None:
+                print(f"Posted NEW action `{class_name}` to perform now ...")
+            else:
+                print(f"API Response: {resp.text}")
+        else:
+            status_code = str(resp.status_code if resp is not None else "NULL")
+            text = str(resp.text if resp is not None else "NULL")
+            stderr.write(f"Bad Service!\nResponse Code: {status_code}\nResponse: {text}\n")
+    except Exception as e:
+        stderr.write(f"Error in print_response: {str(e)}\n")
+        stderr.write(traceback.format_exc())
+
+
+def print_response_old(resp, class_name=None):
     if resp is not None and resp.status_code == 200:
         if class_name is not None:
             print("Posted NEW action `{:s}` to perform now ...".format(class_name))

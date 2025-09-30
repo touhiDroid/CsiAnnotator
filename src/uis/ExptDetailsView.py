@@ -22,12 +22,14 @@ class NonSelectableListWidget(QListWidget):
         # Ignore mouse release events
         event.ignore()
 
+
 # noinspection PyMethodMayBeStatic
 class ExptDetailsView(QWidget):
     def __init__(self, experiment, asset_dir):
         super().__init__()
         self.experiment = experiment
         self.asset_dir = asset_dir
+        self.session_window = None
         qvl_parent = QVBoxLayout()
 
         # region : Top horizontal box
@@ -234,9 +236,18 @@ class ExptDetailsView(QWidget):
         show_under_construction_message(self.asset_dir)
 
     def start_expt_session(self):
-        new_name, ok = QInputDialog.getText(self, 'New Experiment Session', 'Enter Session/Participant Name:')
+        import sys
+        from PyQt5.QtCore import QT_VERSION_STR
+        from PyQt5.Qt import PYQT_VERSION_STR
+
+        print(f"Python version: {sys.version}")
+        print(f"PyQt version: {PYQT_VERSION_STR}")
+        print(f"Qt version: {QT_VERSION_STR}")
+
+        new_name, ok = QInputDialog.getText(self, 'New Experiment Session', 'Enter the Session Name:')
         if ok:
             api.reset_for_new_session(new_name)
-            window = SessionWindow(self.experiment, new_name, asset_dir=self.asset_dir)
-            window.showMaximized()
-            window.show()
+            # print("Chk-0")
+            self.session_window = SessionWindow(self.experiment, new_name, asset_dir=self.asset_dir)
+            self.session_window.showMaximized()
+            self.session_window.show()

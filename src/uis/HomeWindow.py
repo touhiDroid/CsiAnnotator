@@ -50,23 +50,23 @@ class HomeWindow(QMainWindow):
         scroll_area = QScrollArea()
         self.qlb_server_info = QLabel("\n\n\n<< NO SERVER INFO >>\n\n\n\n\n\n\n")
         self.qlb_server_info.setFixedWidth(280)
-        self.qlb_server_info.setFont(QFont('Courier', 13, 800, False))
+        self.qlb_server_info.setFont(QFont('Courier', 10, 800, False))
         self.qlb_server_info.setStyleSheet(f"color: {server_status_color};")
         self.qlb_server_info.setWordWrap(True)
         scroll_area.setWidget(self.qlb_server_info)
         scroll_area.setMaximumWidth(300)
-        parent_lt.addWidget(scroll_area, 1, 0, 2, 1)
+        parent_lt.addWidget(scroll_area, 1, 0, 4, 1)
 
         btn_server = QPushButton(text="Edit Server URL")
         btn_server.setFixedSize(300, 48)
         btn_server.setStyleSheet(big_action_button_style())
         btn_server.clicked.connect(self.edit_server_clicked)
-        parent_lt.addWidget(btn_server, 3, 0, 1, 1)
+        parent_lt.addWidget(btn_server, 5, 0, 1, 1)
 
         q_label_expt = QLabel("\u25BC Experiments")
         q_label_expt.setFont(QFont('Courier', 24, 800, False))
         q_label_expt.setStyleSheet("color: black;")  # background-color: orange;
-        parent_lt.addWidget(q_label_expt, 4, 0, 1, 1)
+        parent_lt.addWidget(q_label_expt, 6, 0, 1, 1)
 
         self.experiments = Experiment.list_from_json(json.load(open(f"{data_dir}/data.json"))['experiments'])
         expt_list = QListWidget()
@@ -83,7 +83,7 @@ class HomeWindow(QMainWindow):
         expt_list.setFont(QFont('Courier', 16, 500, True))
         expt_list.setStyleSheet("color: black; padding: 0px;")  # background-color: yellow;
         expt_list.setSpacing(0)
-        parent_lt.addWidget(expt_list, 5, 0, 8, 1)
+        parent_lt.addWidget(expt_list, 7, 0, 6, 1)
 
         btn_add_expt = QPushButton(icon=QIcon(f"{asset_dir}/icons/add.png"), text="Add New Experiment", parent=self)
         btn_add_expt.setFixedSize(300, 54)
@@ -122,6 +122,7 @@ class HomeWindow(QMainWindow):
             return None
         self.app_cache.missed_server_calls = 0
         data_dir, used_bytes, total_bytes, device_names = self.app_cache.server_stats
+        # print("HomeWindow got total device names: ", len(device_names))
         devices = []
         for dn in device_names:
             device = api.get_esp_device_details(dn)
