@@ -1,11 +1,11 @@
 import random
+import time
 from enum import Enum
 from math import ceil
 from sys import stderr
 
-from PyQt5.QtCore import Qt, QTimer, QSize, QUrl
+from PyQt5.QtCore import Qt, QThread, QSize, QUrl, pyqtSignal
 from PyQt5.QtGui import QPixmap, QFont, QIcon
-from src.models.EspDevice import EspDevice
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgressBar, QHBoxLayout, QPushButton, \
     QDesktopWidget
@@ -13,20 +13,11 @@ from PyQt5.QtWidgets import QLabel, QMainWindow, QVBoxLayout, QWidget, QProgress
 from src.helpers import icon_only_button_style, progressbar_style, api, format_bytes
 from src.helpers.app_cache import AppCache, ServerStatus
 from src.models.Activity import Activity
+from src.models.EspDevice import EspDevice
 
 STR_NONE = 'none'
 TR_ACTIVITY = Activity(100, "Be steady please ...",
                        20, 0, "", "")
-
-
-def get_img(path):
-    lbl = QLabel()
-    img = QPixmap(path)
-    lbl.setPixmap(img)
-    lbl.setScaledContents(True)
-    lbl.setMaximumWidth(300)
-    lbl.setMaximumHeight(270)
-    return lbl
 
 
 class SessionStates(Enum):
@@ -36,6 +27,24 @@ class SessionStates(Enum):
     TRANSITION = 3
     PAUSED = 4
     ENDED = 5
+
+
+class TimerThread(QThread):
+    tick = pyqtSignal()
+
+    def __init__(self, interval_ms=500, parent=None):
+        super().__init__(parent)
+        self.interval_ms = interval_ms
+        self._running = True
+
+    def run(self):
+        while self._running:
+            self.msleep(self.interval_ms)
+            self.tick.emit()
+
+    def stop(self):
+        self._running = False
+        self.wait()
 
 
 class SessionWindow(QMainWindow):
@@ -49,10 +58,12 @@ class SessionWindow(QMainWindow):
         # screen_geometry.setY(screen_geometry.y()-80)
         self.setGeometry(screen_geometry)
         self.showFullScreen()
+        # print("Chk-1")
 
         self.experiment = experiment
         self.asset_dir = asset_dir
 
+        self.last_tick = time.monotonic()
         self.curr_state = SessionStates.STARTING
         self.state_before_paused = self.curr_state
         self.curr_rep_no = 1
@@ -61,6 +72,7 @@ class SessionWindow(QMainWindow):
         self.curr_activity_dur_secs = self.get_curr_activity_duration()
         self.last_activity_id = -1
         self.countdown = self.experiment.transition_secs  # `self.countdown` should be decremented by 0.5s, as the timer expires every 500ms
+        # print("Chk-2")
 
         self.start_mp_sound = QMediaPlayer()
         self.start_mp_sound.setMedia(
@@ -71,6 +83,7 @@ class SessionWindow(QMainWindow):
         self.stop_mp_sound.setMedia(QMediaContent(QUrl.fromLocalFile(f"{self.asset_dir}/sounds/stop_4secs.mp3")))
         self.stop_mp_sound.stateChanged.connect(lambda: self.stop_sound_ended)
         self.stop_mp_sound.error.connect(self.media_error)
+        # print("Chk-3")
 
         self.qvl_parent = QVBoxLayout()
         self.qvl_parent.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
@@ -92,59 +105,118 @@ class SessionWindow(QMainWindow):
         self.btn_pause.setStyleSheet(icon_only_button_style())
         qhb_menu_bar.addWidget(self.btn_pause)
         self.qvl_parent.addLayout(qhb_menu_bar)
+        # print("Chk-4")
 
-        self.qlb_session = QLabel(f"Session/Participant: {session_name}")
-        self.qlb_session.setFont(QFont('Courier', 14, 900, False))
-        self.qlb_session.setStyleSheet('padding: 8px; color:red')
+        self.qlb_session = QLabel(f"Session Name: {session_name}")
+        self.qlb_session.setFont(QFont('Courier', 12, 900, False))
+        self.qlb_session.setStyleSheet('padding: 4px; color:red;')
         self.qvl_parent.addWidget(self.qlb_session, alignment=Qt.AlignmentFlag.AlignCenter)
+        # print("Chk-5")
 
         self.qlb_rep_no = QLabel(self.get_rep_count_text())
-        self.qlb_rep_no.setFont(QFont('Courier', 18, 600, False))
-        self.qlb_rep_no.setStyleSheet('padding: 8px;')
+        self.qlb_rep_no.setFont(QFont('Courier', 14, 600, False))
+        self.qlb_rep_no.setStyleSheet('padding: 6px;')
         self.qvl_parent.addWidget(self.qlb_rep_no, alignment=Qt.AlignmentFlag.AlignCenter)
+        # print("Chk-6")
 
-        self.qlb_img = get_img(f'{self.asset_dir}/expt/dish_mv_rg1.png')
+        # region mid-section
+        # w_tmp = QWidget()
+        # w_tmp.setStyleSheet("background-color: red;")
+        qhb_mid_section = QHBoxLayout()
+
+        self.qlb_server_stat_left = QLabel("<<Server Info>>")
+        self.qlb_server_stat_left.setFont(QFont('Courier', 12, 400, False))
+        self.qlb_server_stat_left.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.qlb_server_stat_left.setStyleSheet('padding: 6px;')
+        qhb_mid_section.addWidget(self.qlb_server_stat_left,
+                                  alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
+        self.pixmap_cache = {}
+        self.qlb_img = self.get_img(f'{self.asset_dir}/expt/dish_mv_rg1.png')
+        self.qlb_img.setStyleSheet("padding: 16px;")
         self.qlb_img.setVisible(False)
-        self.qvl_parent.addWidget(self.qlb_img, alignment=Qt.AlignmentFlag.AlignCenter)
+        qhb_mid_section.addWidget(self.qlb_img)
+        # self.qvl_parent.addWidget(self.qlb_img, alignment=Qt.AlignmentFlag.AlignCenter)
+        # print("Chk-7")
 
         self.qlb_wait_time = QLabel(f"{self.countdown}")
         self.qlb_wait_time.setFont(QFont('Courier', 84, 800, False))
         self.qlb_wait_time.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.qlb_wait_time.setMinimumSize(self.qlb_img.size())
-        self.qlb_wait_time.setStyleSheet('padding: 16px;')
-        self.qvl_parent.addWidget(self.qlb_wait_time, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.qlb_wait_time.setMaximumSize(self.qlb_img.size())
+        self.qlb_wait_time.setStyleSheet('padding: 12px;')
+        qhb_mid_section.addWidget(self.qlb_wait_time)
+        # self.qvl_parent.addWidget(self.qlb_wait_time, alignment=Qt.AlignmentFlag.AlignCenter)
+        # print("Chk-8")
+
+        self.qlb_server_stat_right = QLabel("<<Device Info>>")
+        self.qlb_server_stat_right.setFont(QFont('Courier', 10, 400, False))
+        self.qlb_server_stat_right.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.qlb_server_stat_right.setStyleSheet('padding: 6px;')
+        qhb_mid_section.addWidget(self.qlb_server_stat_right,
+                                  alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        # w_tmp.setLayout(qhb_mid_section)
+        self.qvl_parent.addLayout(qhb_mid_section)
+        # endregion mid-section
 
         self.qpb_action_time = QProgressBar()
         self.qpb_action_time.setTextVisible(False)
-        self.qpb_action_time.setMinimumSize(600, 16)
-        self.qpb_action_time.setMaximumSize(800, 24)
+        self.qpb_action_time.setMinimumSize(560, 8)
+        self.qpb_action_time.setMaximumSize(740, 12)
         self.qpb_action_time.setMaximum(100)
         self.qpb_action_time.setValue(35)
         self.qpb_action_time.setStyleSheet(progressbar_style())
         self.qvl_parent.addWidget(self.qpb_action_time, alignment=Qt.AlignmentFlag.AlignCenter)
+        # print("Chk-9")
 
         self.qlb_activity_name = QLabel(f"Current Activity: {self.curr_activity.name}")
-        self.qlb_activity_name.setFont(QFont('Courier', 16, 600, False))
+        self.qlb_activity_name.setFont(QFont('Courier', 14, 600, False))
         self.qlb_activity_name.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self.qlb_activity_name.setStyleSheet('padding: 8px;')
+        self.qlb_activity_name.setStyleSheet('padding: 6px;')
         self.qvl_parent.addWidget(self.qlb_activity_name, alignment=Qt.AlignmentFlag.AlignCenter)
         # self.qvl_parent.addStretch()
+        # print("Chk-10")
 
-        self.qlb_server_stat = QLabel("<<Server Info>>")
-        self.qlb_server_stat.setFont(QFont('Courier', 16, 600, False))
-        self.qlb_server_stat.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self.qlb_server_stat.setStyleSheet('padding: 8px;')
-        self.qvl_parent.addWidget(self.qlb_server_stat, alignment=Qt.AlignmentFlag.AlignCenter)
+        # self.qlb_server_stat = QLabel("<<Server Info>>")
+        # self.qlb_server_stat.setFont(QFont('Courier', 14, 600, False))
+        # self.qlb_server_stat.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        # self.qlb_server_stat.setStyleSheet('padding: 6px;')
+        # self.qvl_parent.addWidget(self.qlb_server_stat, alignment=Qt.AlignmentFlag.AlignCenter)
+        # print("Chk-11")
 
-        self.imgUpdateTimer = QTimer(self)
-        self.imgUpdateTimer.setInterval(500)  # .5 seconds
-        self.imgUpdateTimer.timeout.connect(lambda: self.handle_state_500ms())
-        self.imgUpdateTimer.start()
+        # self.imgUpdateTimer = QTimer(self)
+        # self.imgUpdateTimer.setInterval(500)  # .5 seconds
+        # self.imgUpdateTimer.timeout.connect(self.handle_state_500ms)
+        # QTimer.singleShot(500, self.start_handle_state_500ms)  # self.imgUpdateTimer.start()
+        self.timer_thread = TimerThread(500)
+        self.timer_thread.tick.connect(self.handle_state_500ms)
+        self.timer_thread.start()
+        # print("Chk-12")
 
         widget = QWidget()
         widget.setStyleSheet("background-color: white; color: black;")
         widget.setLayout(self.qvl_parent)
         self.setCentralWidget(widget)
+        # print("Chk-13")
+
+    def get_img(self, path):
+        lbl = QLabel()
+        img = self.get_pixmap(path)  # QPixmap(path)
+        lbl.setPixmap(img)
+        lbl.setScaledContents(True)
+        lbl.setMaximumWidth(300)
+        lbl.setMaximumHeight(270)
+        return lbl
+
+    def get_pixmap(self, path):
+        if path not in self.pixmap_cache:
+            self.pixmap_cache[path] = QPixmap(path)
+        return self.pixmap_cache[path]
+
+    def start_handle_state_500ms(self):
+        print("Starting timer")
+        # self.imgUpdateTimer.start()
 
     def get_curr_activity_duration(self):
         return self.curr_activity.duration_secs + random.randint(
@@ -182,10 +254,12 @@ class SessionWindow(QMainWindow):
         # The rest of the effects would be handled on the next timer event (after 0.5s)
 
     def handle_state_500ms(self):
+        # print("Chk-14 **")
         try:
             self.countdown -= 0.5
 
             if self.curr_state == SessionStates.STARTING or self.curr_state == SessionStates.TRANSITION:
+                # print("Chk-15 **")
                 self.qlb_wait_time.setText(f"{int(ceil(self.countdown))}")
                 if self.countdown == 3.5:
                     # Play start sound
@@ -195,6 +269,7 @@ class SessionWindow(QMainWindow):
                 self.qpb_action_time.setValue(int(self.countdown * 100 / self.experiment.transition_secs))
 
             elif self.curr_state == SessionStates.IMG_1 or self.curr_state == SessionStates.IMG_2:
+                # print("Chk-16 **")
                 if self.countdown == 3.5:
                     # Play stop sound
                     self.stop_mp_sound.play()
@@ -202,15 +277,19 @@ class SessionWindow(QMainWindow):
                 self.qpb_action_time.setValue(int(self.countdown * 100 / self.curr_activity_dur_secs))
 
             elif self.curr_state == SessionStates.PAUSED:
+                # print("Chk-17 **")
                 self.countdown += 0.5
 
             elif self.curr_state == SessionStates.ENDED:
+                # print("Chk-18 **")
                 self.stop_all_sounds()
                 if self.countdown <= 0:
                     self.close_clicked()
             else:
+                # print("Chk-19 **")
                 stderr.write(f"Undefined SessionState: {self.curr_state}")
             if self.curr_rep_no > self.experiment.reps_per_activity:
+                # print("Chk-20 **")
                 self.qlb_img.setVisible(False)
                 self.qlb_wait_time.setVisible(True)
                 self.qlb_wait_time.setText("Completed!")
@@ -218,12 +297,16 @@ class SessionWindow(QMainWindow):
                 self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
                 self.curr_rep_no = self.experiment.reps_per_activity
                 self.countdown = 5
+            # print("Chk-21 **")
             next_act_str = f"\nNext: {self.pick_next_activity().name}" if self.curr_activity.id == TR_ACTIVITY.id else ""
             self.is_action_running = self.curr_activity.id != TR_ACTIVITY.id
             self.qlb_activity_name.setText(f"Current Activity: {self.curr_activity.name}{next_act_str}")
             self.set_server_info()
+            # print("Chk-22 **")
         except Exception as e:
+            # print("Chk-23 **")
             print("Exception inside handle_state_500ms(): ", e)
+        # print("Chk-24 **")
 
     def handle_activity_session(self):
         is_img1 = self.curr_state == SessionStates.IMG_1
@@ -236,9 +319,8 @@ class SessionWindow(QMainWindow):
         if not self.qlb_img.isVisible():
             self.qlb_img.setVisible(True)
             self.qlb_wait_time.setVisible(False)
-        path = (f'{self.asset_dir}/expt/' +
-                f'{self.curr_activity.img1 if is_img1 else self.curr_activity.img2}')
-        self.qlb_img.setPixmap(QPixmap(path))
+        path = f"{self.asset_dir}/expt/{self.curr_activity.img1 if is_img1 else self.curr_activity.img2}"
+        self.qlb_img.setPixmap(self.get_pixmap(path))
         if self.countdown > 0:
             self.curr_state = SessionStates.IMG_2 if is_img1 else SessionStates.IMG_1
         else:
@@ -283,10 +365,9 @@ class SessionWindow(QMainWindow):
         except Exception as e:
             print(e)
             data_dir_name = ''
-        return (f"\u21F0 Hostname: {host}, " +
-                f"\u21F0 Storage: {format_bytes(used_bytes)} / {format_bytes(total_bytes)}, " +
-                f"\u21F0 Data Dir.: ..{data_dir_name}\n" +
-                f"\n\u21F0 Devices with CSI:\n{EspDevice.get_list_to_str(devices)}")
+        return (f"\u21F0 Hostname: {host},\n" +
+                f"\u21F0 Storage: {format_bytes(used_bytes)} / {format_bytes(total_bytes)},\n" +
+                f"\u21F0 Data Dir.:\n ..{data_dir_name}"), f"\u21F0 Devices with CSI:\n{EspDevice.get_list_to_str(devices)}"
 
     def get_server_info_text_color(self):
         if self.app_cache.missed_server_calls > 5:
@@ -302,12 +383,15 @@ class SessionWindow(QMainWindow):
                 "red" if self.app_cache.server_status == ServerStatus.GONE else "black"))
 
     def set_server_info(self):
-        info = self.get_server_info()
-        if info is not None:
-            self.qlb_server_stat.setText(info)
+        server_info, device_info = self.get_server_info()
+        if server_info is not None:
+            self.qlb_server_stat_left.setText(server_info)
+        if device_info is not None:
+            self.qlb_server_stat_right.setText(device_info)
         # self.qlb_server_info.setFont(QFont('Courier', 13, 800 if self.binary_toggler == 0 else 400, False))
         color = self.get_server_info_text_color()
-        self.qlb_server_stat.setStyleSheet(f"color: {color};")  # background-color: orange;
+        self.qlb_server_stat_left.setStyleSheet(f"color: {color};")  # background-color: orange;
+        self.qlb_server_stat_right.setStyleSheet(f"color: {color};")  # background-color: orange;
 
     def start_sound_ended(self):
         if self.start_mp_sound.state() == QMediaPlayer.EndOfMedia:
@@ -329,9 +413,11 @@ class SessionWindow(QMainWindow):
 
     def closeEvent(self, event):
         try:
-            self.imgUpdateTimer.stop()
-            self.imgUpdateTimer.deleteLater()
+            # self.imgUpdateTimer.stop()
+            # self.imgUpdateTimer.deleteLater()
+            if hasattr(self, "timer_thread"):
+                self.timer_thread.stop()
             self.stop_all_sounds()
         except Exception as e:
-            print("QTimer deletion error on window close:", e)
+            print("Cleanup error:", e)
         event.accept()
