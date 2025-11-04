@@ -5,6 +5,7 @@ from sys import stderr
 
 import requests
 from dotenv import load_dotenv, set_key
+from requests.structures import CaseInsensitiveDict
 from urllib3.exceptions import NewConnectionError, MaxRetryError
 
 from src.models.EspDevice import EspDevice
@@ -126,3 +127,20 @@ def print_response_old(resp, class_name=None):
         stderr.write("Bad Service!\nResponse Code: "
                      + str(resp.status_code if resp is not None else "NULL")
                      + "\nResponse: " + str(resp.text if resp is not None else "NULL\n"))
+
+
+def post_to_discord(post_data):
+    try:
+        print("Posting: ", post_data, '\n')
+
+        headers = CaseInsensitiveDict()
+        headers["Content-Type"] = "application/json"
+        data = {'content': post_data}
+
+        resp = requests.post(os.environ["DISCORD_WEBHOOK_URL"], headers=headers, data=json.dumps(data))
+        print(resp.text)
+    except Exception as err:
+        resp = None
+        stderr.write(str(err) + "\n")
+        pass
+    return resp

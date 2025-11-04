@@ -1,5 +1,7 @@
+import os
 import random
 import time
+from datetime import datetime
 from enum import Enum
 from math import ceil
 from sys import stderr
@@ -61,7 +63,9 @@ class SessionWindow(QMainWindow):
         # print("Chk-1")
 
         self.experiment = experiment
+        self.session_name = session_name
         self.asset_dir = asset_dir
+        self.session_start_time = datetime.now()
 
         self.last_tick = time.monotonic()
         self.curr_state = SessionStates.STARTING
@@ -297,6 +301,14 @@ class SessionWindow(QMainWindow):
                 self.curr_activity = Activity(-101, "All are done!", 0, 0, "", "")
                 self.curr_rep_no = self.experiment.reps_per_activity
                 self.countdown = 5
+                api.post_to_discord(json.dumps({
+                    'host': os.uname().nodename,
+                    'session': self.session_name,
+                    'experiment': self.experiment.to_json(),
+                    'start_time': self.session_start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    'end_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }))
+
             # print("Chk-21 **")
             next_act_str = f"\nNext: {self.pick_next_activity().name}" if self.curr_activity.id == TR_ACTIVITY.id else ""
             self.is_action_running = self.curr_activity.id != TR_ACTIVITY.id
