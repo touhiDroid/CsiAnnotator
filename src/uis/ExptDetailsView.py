@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushB
 
 from src.helpers import big_action_button_style, icon_only_button_style, api, show_under_construction_message
 from src.uis.ActivityItemView import ActivityItemView
+from src.uis.PredictionWindow import PredictionWindow
 from src.uis.SessionWindow import SessionWindow
 
 
@@ -30,6 +31,7 @@ class ExptDetailsView(QWidget):
         self.experiment = experiment
         self.asset_dir = asset_dir
         self.session_window = None
+        self.predict_window = None
         qvl_parent = QVBoxLayout()
 
         # region : Top horizontal box
@@ -50,6 +52,12 @@ class ExptDetailsView(QWidget):
         btn_start.setStyleSheet(big_action_button_style())
         btn_start.clicked.connect(self.start_expt_session)
         qh_title.addWidget(btn_start)
+
+        btn_predict = QPushButton("Realtime Prediction")
+        btn_predict.setFixedSize(220, 48)
+        btn_predict.setStyleSheet(big_action_button_style())
+        btn_predict.clicked.connect(self.start_prediction_session)
+        qh_title.addWidget(btn_predict)
 
         btn_delete = QPushButton(icon=QIcon(f"{asset_dir}/icons/delete.png"))
         btn_delete.setFixedSize(40, 40)
@@ -251,3 +259,8 @@ class ExptDetailsView(QWidget):
             self.session_window = SessionWindow(self.experiment, new_name, asset_dir=self.asset_dir)
             self.session_window.showMaximized()
             self.session_window.show()
+
+    def start_prediction_session(self):
+        self.predict_window = PredictionWindow(self.experiment, asset_dir=self.asset_dir)
+        self.predict_window.showMaximized()
+        self.predict_window.show()

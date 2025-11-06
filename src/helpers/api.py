@@ -86,6 +86,21 @@ def get_server_stats():
     return None
 
 
+def get_device_data(device_name, duration=60):
+    params = (('device_name', device_name), ('duration', duration))
+    try:
+        resp = requests.get(f'{get_server_address()}/data/device', params=params)
+        if resp is not None and resp.status_code == 200:
+            return EspDevice.from_json(resp.content)
+        else:
+            stderr.write(str(resp) + "\n")
+            return None
+    except (ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError, Exception) as err:
+        resp = None
+        stderr.write(str(err) + "\n")
+    return resp
+
+
 def get_esp_device_details(device_name):
     params = (('device_name', device_name),)
     try:
