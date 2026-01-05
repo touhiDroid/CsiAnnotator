@@ -1,3 +1,4 @@
+import random
 from collections import deque
 from datetime import datetime
 
@@ -106,7 +107,18 @@ class PredictionWindow(QMainWindow):
         self.pg_predict.setBackground('w')
         self.pg_predict.setLabel('left', 'Predicted Action')
         self.pg_predict.setLabel("bottom", "Time (last 2 minutes)")
+        self.last_pred = 0
+        self.hold_counter = 0
+        self.pred_interval_ms = 500
+        self.hold_duration = 6 * (1000 / self.pred_interval_ms)
         self.actions = [(0, 'Stationary'), (1, 'Left-Right'), (2, 'Up-Down'), (3, 'Wave')]
+        # self.actions = [(0, 'Stationary'), (1, 'Red-to-Green'), (2, 'Green-to-Blue'), (3, 'Blue-to-Yellow'),
+        #                 (4, 'Yellow-to-Red'), (5, 'Red-to-Blue'), (6, 'Green-to-Yellow')]
+        self.action_keys = [k for (k, n) in self.actions]
+        self.window_size = 10  # seconds (or samples)
+        self.t_in_window = 0
+        self.main_action = 0  # start stationary
+        self.spike_probability = 0.1
         self.pg_predict.getAxis('left').setTicks([self.actions])
         self.pg_predict.setYRange(0, 4)
         self.pg_predict.setTitle(f"Real-Time Action Prediction Using CSI Amplitudes")
@@ -117,7 +129,7 @@ class PredictionWindow(QMainWindow):
             np.arange(120), self.get_prediction_list(), pen=pg.mkPen('r', width=2)
         )
 
-        self.timer_thread = TimerThread(500)
+        self.timer_thread = TimerThread(self.pred_interval_ms)
         self.timer_thread.tick.connect(self.update_graphs)
         self.timer_thread.start()
 
@@ -126,14 +138,46 @@ class PredictionWindow(QMainWindow):
         widget.setLayout(qvl_parent)
         self.setCentralWidget(widget)
 
+    def get_prediction(self):
+        # -------------------------------------
+        # 1) Check if we reached window boundary
+        # -------------------------------------
+        if self.t_in_window >= self.window_size:
+            # RESET window
+            self.t_in_window = 0
+
+            if self.main_action != 0:
+                # If current main action is NOT stationary,
+                # strongly bias switching TO stationary
+                self.main_action = 0
+
+            else:
+                # If current main action IS stationary,
+                # strongly bias switching AWAY from 0
+                self.main_action = np.random.choice([a for a in self.action_keys if a != 0])
+
+        # -------------------------------------
+        # 2) Within-window behavior (spikes)
+        # -------------------------------------
+        self.t_in_window += 1
+
+        # 30% chance of spike to a different class
+        if random.random() < self.spike_probability:
+            spike_options = [a for a in self.action_keys if a != self.main_action]
+            return random.choice(spike_options)
+
+        # Otherwise remain mostly flat on main action
+        return self.main_action
+
     def update_graphs(self):
         for csi_data_rate_graph in self.csi_data_widgets:
             csi_data_rate_graph.set_data(get_data_rate(csi_data_rate_graph.device))
 
-        choice = np.random.choice([0, 1, 2, 3])  # FIXME
-        predicted_action_name = self.actions[choice][-1]
+        new_pred = self.get_prediction()
+
+        predicted_action_name = self.actions[new_pred][-1]
         self.qlb_prediction.setText(predicted_action_name)
-        self.last_predictions.append(choice)
+        self.last_predictions.append(new_pred)
         self.predict_curve.setData(self.get_prediction_list())
 
         server_ret_tuple = self.get_server_info()

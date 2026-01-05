@@ -3,7 +3,9 @@ import os
 import traceback
 from sys import stderr
 
+import numpy as np
 import requests
+import zmq
 from dotenv import load_dotenv, set_key
 from requests.structures import CaseInsensitiveDict
 from urllib3.exceptions import NewConnectionError, MaxRetryError
@@ -159,3 +161,26 @@ def post_to_discord(post_data):
         stderr.write(str(err) + "\n")
         pass
     return resp
+
+
+def get_prediction_server_socket():
+    ctx = zmq.Context()
+    socket = ctx.socket(zmq.REQ)
+    host = get_server_host()
+    socket.connect(f"tcp://{host}:5557")
+    return socket
+
+
+def request_prediction(model_key, csi_window):
+    """Send CSI amplitude window + model key to WiPT-ML ZeroMQ server"""
+    payload = {
+        "model_key": model_key,  # e.g. "vertical", "horizontal",
+        # "wipt_ensemble", "wipt_h", "wipt_v", "wipt_lr", "wipt_rl",
+        # "hand_ch1", "hand_ch3", "hand_ch5", "hand_ch7"
+        "data": np.array(csi_window)  # array of Numpy 2D arrays with shape = (150, 32)
+        # each item = a single WiFi link data making ensemble prediction possible
+    }
+    socket = get_prediction_server_socket()
+    socket.send_pyobj(payload)
+    result = socket.recv_pyobj()
+    return result
